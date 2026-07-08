@@ -1,0 +1,37 @@
+# 语义化自动发版：release-please 根据 conventional commits 维护 Release PR
+# （feat: 升 minor / fix: 升 patch / feat!: 升 major），合并该 PR 后自动打
+# tag、生成 CHANGELOG 与 GitHub Release，再级联触发四平台打包上传。
+# 作者: yuchenxi
+name: Release Please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.rp.outputs.release_created }}
+      tag_name: ${{ steps.rp.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: rp
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # GITHUB_TOKEN 打的 tag 不会触发 push tags 事件（GitHub 防递归），
+  # 因此在这里显式级联调用打包工作流
+  build-installers:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    with:
+      tag_name: ${{ needs.release-please.outputs.tag_name }}

@@ -1,4 +1,5 @@
-# 发布构建：推送 v* 标签时用 tauri-action 打包各平台安装包并创建 GitHub Release
+# 发布构建：打包各平台安装包并上传到对应 tag 的 GitHub Release
+# 触发方式：release-please 级联调用（常规路径）/ 手动推 v* 标签（兜底）
 # 作者: yuchenxi
 name: Release
 
@@ -7,6 +8,12 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      tag_name:
+        description: "要构建并上传资产的 tag（如 v0.2.0）"
+        type: string
+        required: true
 
 permissions:
   contents: write
@@ -33,6 +40,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name || github.ref_name }}
 
       - name: 安装 Linux 系统依赖（WebKitGTK 等）
         if: matrix.platform == 'ubuntu-22.04'
@@ -60,15 +69,15 @@ jobs:
       - name: 安装依赖
         run: pnpm install --frozen-lockfile
 
-      - name: 构建并发布
+      - name: 构建并上传安装包
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: apps/desktop
-          tagName: ${{ github.ref_name }}
-          releaseName: "Guitar House ${{ github.ref_name }}"
-          releaseBody: "见提交记录。macOS 用户请下载 .dmg（Apple Silicon 选 aarch64，Intel 选 x64）。"
+          tagName: ${{ inputs.tag_name || github.ref_name }}
+          releaseName: "Guitar House ${{ inputs.tag_name || github.ref_name }}"
+          releaseBody: "macOS 用户请下载 .dmg（Apple Silicon 选 aarch64，Intel 选 x64）。"
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

@@ -61,11 +61,15 @@ pnpm typecheck      # 全仓库类型检查
 ## 下载与发版（GitHub Actions 自动打包）
 
 - 每次 push 到 `main`：CI 自动执行类型检查与前端构建
-- 推送 `v*` 标签（如 `v0.1.0`）：自动构建 macOS（Apple Silicon / Intel）、Windows、Linux 安装包，并创建 GitHub Release 草稿，到仓库 Releases 页面编辑发布即可
+- **语义化自动发版（release-please）**：提交信息遵循 [Conventional Commits](https://www.conventionalcommits.org/zh-hans/)（`feat:` 新功能升 minor、`fix:` 修复升 patch、`feat!:` 破坏性变更升 major），push 到 main 后机器人自动维护一个 Release PR（累积变更、预告版本号、生成 CHANGELOG）；**合并该 PR 即发版**——自动打 tag、创建 Release，并级联构建 macOS（Apple Silicon / Intel）、Windows、Linux 安装包上传
+- 兜底：手动推 `v*` 标签也会直接触发打包
 
 ```bash
-# 发一个版本
-git tag v0.1.0 && git push origin v0.1.0
+# 常规发版：正常提交，等 release-please 的 PR 出现后合并它即可
+git commit -m "feat: 新增 AB 循环"
+
+# 兜底手动发版
+git tag v0.2.0 && git push origin v0.2.0
 ```
 
 macOS 安装包未签名（无 Apple 开发者证书），首次打开如提示"已损坏"，在终端执行：
