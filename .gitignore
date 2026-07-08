@@ -1,0 +1,22 @@
+# 依赖
+node_modules/
+
+# 构建产物
+dist/
+target/
+*.local
+
+# 编辑器
+.vscode/
+.idea/
+.DS_Store
+
+# 日志
+*.log
+
+# 本地测试素材
+apps/desktop/public/test-samples/
+
+# alphaTab vite 插件自动拷贝的资源（构建时生成）
+apps/desktop/public/font/
+apps/desktop/public/soundfont/

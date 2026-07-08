@@ -1,0 +1,5 @@
+# Guitar House 工具链版本管理
+# 作者: yuchenxi
+[tools]
+node = "22"
+rust = "1.88"
