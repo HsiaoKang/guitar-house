@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "description": "通用课程管理与上课工具：课节化整合视频/音频/图片/PDF 资源，配套练习工具",
-  "author": "yuchenxi",
+  "author": "HsiaoKang",
+  "license": "AGPL-3.0-only",
   "scripts": {
     "dev": "pnpm --filter @learning-house/desktop tauri dev",
     "build": "pnpm --filter @learning-house/desktop tauri build",

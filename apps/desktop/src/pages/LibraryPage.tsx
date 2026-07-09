@@ -3,8 +3,6 @@
  *
  * 应用首页：课程卡片列表（含学习进度），支持从文件夹导入课程
  * （默认整理规则：子文件夹归纳为课节）、重新扫描、删除课程。
- *
- * @author yuchenxi
  */
 import { useState } from "react";
 import { BrandLogo, Button, EmptyState, IconButton, Modal, ProgressBar } from "@learning-house/ui";

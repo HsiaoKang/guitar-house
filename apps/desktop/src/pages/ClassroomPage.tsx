@@ -3,8 +3,6 @@
  *
  * 单个课程的学习界面：顶栏课节切换与完成标记，
  * 主区左视频右文档（可在设置中调换），音频播放条，底部工具栏。
- *
- * @author yuchenxi
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Checkbox, EmptyState, IconButton, Select } from "@learning-house/ui";

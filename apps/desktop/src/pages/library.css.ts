@@ -1,7 +1,5 @@
 /**
  * 课程库页样式
- *
- * @author yuchenxi
  */
 import { style } from "@vanilla-extract/css";
 import { vars } from "@learning-house/ui";

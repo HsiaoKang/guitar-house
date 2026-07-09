@@ -1,7 +1,5 @@
 /**
  * 倍速档位按钮组（视频与音频共用）
- *
- * @author yuchenxi
  */
 import { rateBtn, rateGroup } from "./videoplayer.css";
 

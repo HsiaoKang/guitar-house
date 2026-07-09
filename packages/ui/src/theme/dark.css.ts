@@ -1,7 +1,5 @@
 /**
  * 暗色主题（默认）
- *
- * @author yuchenxi
  */
 import { createTheme } from "@vanilla-extract/css";
 import { vars } from "./contract.css";

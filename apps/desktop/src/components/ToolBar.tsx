@@ -3,8 +3,6 @@
  *
  * 上课页底部的工具容器：左端提供工具切换器，右侧渲染当前工具面板。
  * 目前内置工具：节拍器；默认工具由课程类型决定（吉他 -> 节拍器）。
- *
- * @author yuchenxi
  */
 import { Select } from "@learning-house/ui";
 import type { MetronomeOptions } from "@learning-house/metronome-core";

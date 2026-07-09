@@ -3,8 +3,6 @@
  *
  * 保留原生 select 的弹层与键盘交互（各端弹层样式不同但可用性最佳），
  * 收起态外观与箭头统一绘制，抹平主要视觉差异。
- *
- * @author yuchenxi
  */
 import type { CSSProperties, SelectHTMLAttributes } from "react";
 import { cx } from "../cx";

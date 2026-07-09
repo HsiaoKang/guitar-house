@@ -4,8 +4,6 @@
  * 播放当前课节内的视频资源（Tauri asset 协议访问本地文件），
  * 多个视频时提供 tab 切换；支持倍速、播放位置记忆（续播），
  * 并把媒体事件转发给节拍器实现"跟随视频"联动。
- *
- * @author yuchenxi
  */
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { EmptyState, Tabs } from "@learning-house/ui";

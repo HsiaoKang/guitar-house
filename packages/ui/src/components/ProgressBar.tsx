@@ -1,7 +1,5 @@
 /**
  * 进度条（课程学习进度）
- *
- * @author yuchenxi
  */
 import { progressFill, progressTrack } from "./progress.css";
 

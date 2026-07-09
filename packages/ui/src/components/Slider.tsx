@@ -3,8 +3,6 @@
  *
  * 保留原生 input[type=range] 的拖拽/键盘/无障碍行为，
  * 外观完全自绘：轨道渐变表现进度，thumb 统一圆点。
- *
- * @author yuchenxi
  */
 import type { CSSProperties, InputHTMLAttributes } from "react";
 import { assignInlineVars } from "@vanilla-extract/dynamic";

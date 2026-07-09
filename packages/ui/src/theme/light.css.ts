@@ -2,8 +2,6 @@
  * 亮色主题
  *
  * 主题色沿用琥珀色系但加深，保证浅底上的对比度。
- *
- * @author yuchenxi
  */
 import { createTheme } from "@vanilla-extract/css";
 import { vars } from "./contract.css";

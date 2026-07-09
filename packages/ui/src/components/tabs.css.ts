@@ -1,7 +1,5 @@
 /**
  * 资源 tab 样式
- *
- * @author yuchenxi
  */
 import { style } from "@vanilla-extract/css";
 import { vars } from "../theme/contract.css";

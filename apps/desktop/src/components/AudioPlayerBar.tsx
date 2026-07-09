@@ -4,8 +4,6 @@
  * 位于主区与工具栏之间的横向控制条，播放当前课节的音频资源，
  * 多个音频时提供下拉切换；提供进度拖动、倍速、循环与音量控制，
  * 并把媒体事件转发给节拍器实现"跟随伴奏"联动。
- *
- * @author yuchenxi
  */
 import { useEffect, useState, type RefObject } from "react";
 import { Checkbox, IconButton, Select, Slider } from "@learning-house/ui";

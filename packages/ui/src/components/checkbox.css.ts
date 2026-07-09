@@ -1,7 +1,5 @@
 /**
  * 复选框样式：input 隐藏，勾选框自绘
- *
- * @author yuchenxi
  */
 import { style } from "@vanilla-extract/css";
 import { vars } from "../theme/contract.css";

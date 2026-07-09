@@ -3,8 +3,6 @@
  *
  * 基于 pdf.js 将 PDF 所有页渲染为 canvas 连续滚动展示，
  * 按 devicePixelRatio 提升清晰度，缩放时整体重渲染。
- *
- * @author yuchenxi
  */
 import { useEffect, useRef, useState } from "react";
 import { EmptyState } from "@learning-house/ui";

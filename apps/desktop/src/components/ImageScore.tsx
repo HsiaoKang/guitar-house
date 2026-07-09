@@ -3,8 +3,6 @@
  *
  * 直接用 img 展示图片谱（截图/照片），宽度随缩放系数变化，
  * 超出部分由外层滚动容器承载。
- *
- * @author yuchenxi
  */
 import { scoreImage, scoreScroll } from "./docviewer.css";
 

@@ -1,7 +1,5 @@
 /**
  * 应用级共享布局样式（壳、顶栏、面板工具条）
- *
- * @author yuchenxi
  */
 import { style } from "@vanilla-extract/css";
 import { vars } from "@learning-house/ui";

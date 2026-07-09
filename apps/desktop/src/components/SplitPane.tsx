@@ -2,8 +2,6 @@
  * 左右分割布局
  *
  * 中间分隔条可拖拽调整左右面板宽度比例。
- *
- * @author yuchenxi
  */
 import { useCallback, useRef, useState, type ReactNode } from "react";
 import { splitDivider, splitLeft, splitPane, splitRight } from "./splitpane.css";

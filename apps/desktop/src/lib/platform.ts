@@ -3,8 +3,6 @@
  *
  * 统一封装依赖 Tauri 运行时的能力，并为纯浏览器环境（开发调试）
  * 提供降级实现，保证 UI 流程可以脱离 Tauri 窗口独立验证。
- *
- * @author yuchenxi
  */
 import { convertFileSrc } from "@tauri-apps/api/core";
 

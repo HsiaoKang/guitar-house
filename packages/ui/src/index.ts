@@ -3,8 +3,6 @@
  *
  * 设计系统：主题 token 契约、暗/亮主题、全局样式、
  * 跨端一致的基础组件与统一图标。
- *
- * @author yuchenxi
  */
 // 主题
 export { vars } from "./theme/contract.css";

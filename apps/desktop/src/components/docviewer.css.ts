@@ -1,7 +1,5 @@
 /**
  * 文档查看器与三类渲染器容器样式
- *
- * @author yuchenxi
  */
 import { style } from "@vanilla-extract/css";
 import { vars } from "@learning-house/ui";

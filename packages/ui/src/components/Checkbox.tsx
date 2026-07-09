@@ -2,8 +2,6 @@
  * 复选框（自绘勾选框）
  *
  * 原生 input 视觉隐藏保留可访问性，勾选框与对勾统一绘制。
- *
- * @author yuchenxi
  */
 import type { ReactNode } from "react";
 import { checkboxBox, checkboxInput, checkboxLabel } from "./checkbox.css";

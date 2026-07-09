@@ -3,8 +3,6 @@
  *
  * 房子轮廓 + 内嵌翻开的书页，呼应 "Learning House"。
  * 描边继承 currentColor，随主题自动适配。
- *
- * @author yuchenxi
  */
 
 interface BrandLogoProps {

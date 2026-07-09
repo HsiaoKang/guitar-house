@@ -6,8 +6,6 @@
  *   课节内收录该文件夹里（含其子层级）所有可识别资源
  * - 根文件夹下的散落文件归纳为一个"未分组"课节
  * - 无任何子文件夹时，整个根文件夹视为单课节课程
- *
- * @author yuchenxi
  */
 import { readDir } from "@tauri-apps/plugin-fs";
 import {

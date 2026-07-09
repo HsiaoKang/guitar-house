@@ -3,8 +3,6 @@
  *
  * 封装 Metronome 引擎实例的生命周期，并向组件暴露响应式的
  * 参数状态、启停控制以及与媒体元素（视频/伴奏）的联动绑定。
- *
- * @author yuchenxi
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Metronome, type MetronomeOptions } from "@learning-house/metronome-core";

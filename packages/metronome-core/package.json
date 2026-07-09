@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "节拍器核心引擎：基于 Web Audio API 的精准调度，支持自由模式与视频时间轴联动模式",
-  "author": "yuchenxi",
+  "author": "HsiaoKang",
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -15,5 +15,6 @@
   },
   "devDependencies": {
     "typescript": "~5.8.3"
-  }
+  },
+  "license": "AGPL-3.0-only"
 }

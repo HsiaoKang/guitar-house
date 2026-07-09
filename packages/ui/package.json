@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Learning House 设计系统：vanilla-extract 主题 token、跨端一致的基础组件、SVG 图标",
-  "author": "yuchenxi",
+  "author": "HsiaoKang",
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -27,5 +27,6 @@
     "@types/react": "^19.1.8",
     "react": "^19.1.0",
     "typescript": "~5.8.3"
-  }
+  },
+  "license": "AGPL-3.0-only"
 }

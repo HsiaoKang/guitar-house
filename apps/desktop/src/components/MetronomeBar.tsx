@@ -3,8 +3,6 @@
  *
  * 工具栏内的节拍器面板：启停、Tap 测速浮窗、BPM 调节、拍号、
  * 重音、音量、媒体联动开关与首拍偏移设置、拍点指示灯。
- *
- * @author yuchenxi
  */
 import { useState } from "react";
 import { Button, Checkbox, Select, Slider } from "@learning-house/ui";

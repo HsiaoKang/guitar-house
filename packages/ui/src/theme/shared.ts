@@ -2,8 +2,6 @@
  * 主题间共享的尺度常量（间距/圆角/字号/字体栈）
  *
  * 单独放普通 ts 文件（非 .css.ts），供两套主题复用。
- *
- * @author yuchenxi
  */
 
 /** 跨平台中文字体栈：macOS PingFang / Windows 微软雅黑 / Linux Noto 兜底 */

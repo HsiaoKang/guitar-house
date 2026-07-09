@@ -4,8 +4,6 @@
  * 点击 TAP 后弹出的浮层：通过鼠标点击大按钮或敲击空格键打拍，
  * 实时计算并显示 BPM（取最近 8 次间隔平均，超过 2 秒未击打自动重新计数），
  * 可一键把结果应用到节拍器。
- *
- * @author yuchenxi
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Modal } from "@learning-house/ui";

@@ -3,8 +3,6 @@
  *
  * 遮罩 + 面板 + 标题栏（含关闭按钮），点遮罩关闭；
  * 内容区自由排布（TAP 浮窗 / 导入课程浮窗共用）。
- *
- * @author yuchenxi
  */
 import type { CSSProperties, ReactNode } from "react";
 import { IconButton } from "./Button";

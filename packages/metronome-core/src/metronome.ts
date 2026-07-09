@@ -9,8 +9,6 @@
  * 支持两种模式：
  * - free：自由模式，按 BPM 独立打拍
  * - sync：联动模式，拍点锚定在视频时间轴上，随视频起停/倍速/跳转
- *
- * @author yuchenxi
  */
 import type { BeatEvent, MetronomeOptions, TimelineAlignment } from "./types";
 

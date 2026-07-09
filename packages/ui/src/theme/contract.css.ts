@@ -4,8 +4,6 @@
  * 用 createThemeContract 声明全部 token 的形状，
  * 暗/亮主题分别为契约提供具体值；组件样式只引用契约变量，
  * 与具体主题解耦，是主题切换能力的根基。
- *
- * @author yuchenxi
  */
 import { createThemeContract } from "@vanilla-extract/css";
 

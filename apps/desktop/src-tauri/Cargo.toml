@@ -2,7 +2,7 @@
 name = "learning-house"
 version = "0.2.0"
 description = "通用课程管理与上课工具"
-authors = ["yuchenxi"]
+authors = ["HsiaoKang"]
 edition = "2021"
 
 [lib]

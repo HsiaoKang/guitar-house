@@ -3,8 +3,6 @@
  *
  * 统一封装 lucide-react：集中管理应用用到的图标集合，
  * 统一默认尺寸与线宽，业务侧通过名称引用，便于整体替换与审计。
- *
- * @author yuchenxi
  */
 import type { CSSProperties } from "react";
 import {

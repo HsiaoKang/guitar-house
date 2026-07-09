@@ -3,8 +3,6 @@
  *
  * 统一 reset、字体渲染、滚动条、焦点态与表单控件默认外观，
  * 抹平 WKWebView / WebView2 / WebKitGTK 的默认差异。
- *
- * @author yuchenxi
  */
 import { globalStyle } from "@vanilla-extract/css";
 import { vars } from "./contract.css";

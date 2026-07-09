@@ -2,8 +2,6 @@
  * 资源 Tab 切换器
  *
  * 用于课节内同类资源（视频/文档）的横向切换。
- *
- * @author yuchenxi
  */
 import { tabItem, tabList } from "./tabs.css";
 

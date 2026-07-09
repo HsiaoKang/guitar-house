@@ -3,8 +3,6 @@
  *
  * 承载当前课节的文档类资源（图片 / PDF / Guitar Pro），
  * 多个文档时提供 tab 切换，提供缩放工具条，按类型分发到对应渲染器。
- *
- * @author yuchenxi
  */
 import { useEffect, useState } from "react";
 import { Button, EmptyState, IconButton, Tabs } from "@learning-house/ui";

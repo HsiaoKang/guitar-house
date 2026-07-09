@@ -4,8 +4,6 @@
  * 基于 alphaTab 渲染 .gp/.gp3/.gp4/.gp5/.gpx 文件，
  * 输出标准五线谱 + 六线谱（TAB），缩放通过 alphaTab 的
  * display.scale 设置实现。
- *
- * @author yuchenxi
  */
 import { useEffect, useRef, useState } from "react";
 import { EmptyState } from "@learning-house/ui";

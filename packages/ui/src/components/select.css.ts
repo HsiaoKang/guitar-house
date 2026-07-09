@@ -1,7 +1,5 @@
 /**
  * 下拉选择样式：收起态自绘，弹层保留系统渲染
- *
- * @author yuchenxi
  */
 import { style } from "@vanilla-extract/css";
 import { vars } from "../theme/contract.css";

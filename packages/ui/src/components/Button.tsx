@@ -1,7 +1,5 @@
 /**
  * 按钮与图标按钮
- *
- * @author yuchenxi
  */
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cx } from "../cx";

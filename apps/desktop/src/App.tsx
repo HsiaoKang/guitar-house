@@ -3,8 +3,6 @@
  *
  * 负责视图路由（课程库 / 上课页）、课程库与设置的加载持久化、
  * 主题 class 挂载与切换。
- *
- * @author yuchenxi
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";

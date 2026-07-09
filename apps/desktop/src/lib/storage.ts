@@ -5,8 +5,6 @@
  * 纯浏览器环境（开发调试）降级为 localStorage，保证 UI 流程可独立验证。
  *
  * 存储内容：课程库、学习进度（视频续播位置）、应用设置。
- *
- * @author yuchenxi
  */
 import type { AppSettings, Course } from "../types";
 

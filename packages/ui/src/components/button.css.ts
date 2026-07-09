@@ -1,7 +1,5 @@
 /**
  * 按钮样式（recipe variants）
- *
- * @author yuchenxi
  */
 import { recipe } from "@vanilla-extract/recipes";
 import { vars } from "../theme/contract.css";

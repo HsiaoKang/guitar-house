@@ -3,8 +3,6 @@
  *
  * 轨道用双色渐变绘制已填充进度（fillVar 由组件注入百分比），
  * thumb 用伪元素统一绘制，三端 WebView 渲染完全一致。
- *
- * @author yuchenxi
  */
 import { createVar, style } from "@vanilla-extract/css";
 import { vars } from "../theme/contract.css";

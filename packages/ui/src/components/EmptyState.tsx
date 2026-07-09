@@ -1,7 +1,5 @@
 /**
  * 空态占位
- *
- * @author yuchenxi
  */
 import type { ReactNode } from "react";
 import { emptyHint, emptyIcon, emptyRoot } from "./empty.css";
