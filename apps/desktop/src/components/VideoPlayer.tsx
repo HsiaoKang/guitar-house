@@ -46,6 +46,8 @@ export function VideoPlayer(props: VideoPlayerProps) {
   const { resources, videoRef, engineControl, getSavedPosition, onPositionSave } = props;
   const [activeIndex, setActiveIndex] = useState(0);
   const lastSaveRef = useRef(0);
+  /** 封面渲染 hack 进行中（此期间的 play/pause 事件不触发联动与进度保存） */
+  const coverHackRef = useRef(false);
 
   // 课节切换（资源列表变化）时回到第一个视频
   useEffect(() => {
@@ -65,15 +67,30 @@ export function VideoPlayer(props: VideoPlayerProps) {
   };
 
   /**
-   * 首帧数据就绪（loadeddata）：恢复续播位置。
-   * 封面由 preload="auto" + 首帧解码自然呈现，无需额外 seek
+   * 首帧数据就绪（loadeddata）：恢复续播位置并渲染封面。
+   * 关键节点：WKWebView 不渲染未播放视频的画面帧（Safari 内核行为），
+   * 通过"静音瞬时播放一帧后暂停"触发首帧上屏；期间挂起联动与进度保存
    */
-  const restorePosition = () => {
+  const restorePosition = async () => {
     const el = videoRef.current;
     if (!el || !active) return;
     const saved = getSavedPosition(active.path);
     if (saved > 1 && saved < el.duration - 3) {
       el.currentTime = saved;
+    }
+    if (!el.paused) return;
+    coverHackRef.current = true;
+    const wasMuted = el.muted;
+    el.muted = true;
+    try {
+      await el.play();
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      el.pause();
+    } catch {
+      // 自动播放被环境拒绝时放弃封面渲染，不影响正常播放
+    } finally {
+      el.muted = wasMuted;
+      coverHackRef.current = false;
     }
   };
 
@@ -136,9 +153,13 @@ export function VideoPlayer(props: VideoPlayerProps) {
             controls
             playsInline
             preload="auto"
-            onLoadedData={restorePosition}
-            onPlay={() => withVideo(engineControl.startSynced)}
+            onLoadedData={() => void restorePosition()}
+            onPlay={() => {
+              if (coverHackRef.current) return;
+              withVideo(engineControl.startSynced);
+            }}
             onPause={() => {
+              if (coverHackRef.current) return;
               engineControl.stopFromMedia();
               // 暂停时立即落一次续播位置
               const el = videoRef.current;
