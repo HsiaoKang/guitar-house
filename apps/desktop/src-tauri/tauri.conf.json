@@ -10,6 +10,11 @@
     "beforeBuildCommand": "pnpm build",
     "frontendDist": "../dist"
   },
+  "plugins": {
+    "fs": {
+      "requireLiteralLeadingDot": false
+    }
+  },
   "app": {
     "windows": [
       {

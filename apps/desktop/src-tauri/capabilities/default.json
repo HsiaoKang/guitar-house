@@ -17,8 +17,7 @@
     "store:default",
     {
       "identifier": "fs:scope",
-      "allow": [{ "path": "**" }],
-      "requireLiteralLeadingDot": false
+      "allow": [{ "path": "**" }, { "path": "**/.learninghouse" }, { "path": "**/.learninghouse/**" }]
     }
   ]
 }
