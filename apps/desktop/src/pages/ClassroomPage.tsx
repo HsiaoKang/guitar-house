@@ -15,7 +15,7 @@ import { ResourcePicker } from "../components/ResourcePicker";
 import { ToolBar } from "../components/ToolBar";
 import { detectBpmFromFile } from "../lib/bpmDetect";
 import { useMetronome } from "../hooks/useMetronome";
-import { useMediaShortcuts } from "../hooks/useMediaShortcuts";
+import { useMediaShortcuts, type ShortcutTarget } from "../hooks/useMediaShortcuts";
 import {
   DEFAULT_TOOL_BY_COURSE_TYPE,
   isDocKind,
@@ -99,9 +99,36 @@ export function ClassroomPage(props: ClassroomPageProps) {
   // 伴奏音频的联动控制接口（选中音频联动源时驱动节拍器）
   const audioControl = useMemo(() => metronome.bindSource("audio"), [metronome.bindSource]);
 
-  // 快捷键绑定到主媒体：有视频用视频，否则用音频
-  const primaryMediaRef = videoResources.length > 0 ? videoRef : audioRef;
-  useMediaShortcuts(primaryMediaRef);
+  /** 快捷键作用域：跟随用户最近操作的区域（视频/伴奏/节拍器） */
+  const shortcutDomainRef = useRef<"video" | "audio" | "metronome">("video");
+  const hasVideo = videoResources.length > 0;
+
+  // 课节切换时作用域回到主媒体
+  useEffect(() => {
+    shortcutDomainRef.current = hasVideo ? "video" : "audio";
+  }, [lessonIndex, hasVideo]);
+
+  /**
+   * 解析当前快捷键目标：空格控制最近操作的域（节拍器启停 / 伴奏播停 /
+   * 视频播停），方向键作用于该域的媒体（节拍器域沿用主媒体）
+   */
+  const resolveShortcutTarget = useCallback((): ShortcutTarget => {
+    const domain = shortcutDomainRef.current;
+    const primary = hasVideo ? videoRef.current : audioRef.current;
+    if (domain === "metronome") {
+      return { media: primary, onSpace: metronome.toggle };
+    }
+    const media = domain === "audio" && audioRef.current ? audioRef.current : primary;
+    return {
+      media,
+      onSpace: () => {
+        if (!media) return;
+        if (media.paused) void media.play();
+        else media.pause();
+      },
+    };
+  }, [hasVideo, metronome.toggle]);
+  useMediaShortcuts(resolveShortcutTarget);
 
   /**
    * 读取当前联动源媒体的播放位置（秒），无联动源时返回 null
@@ -148,12 +175,15 @@ export function ClassroomPage(props: ClassroomPageProps) {
   }
 
   const videoPane = (
-    <VideoPlayer
-      resources={videoResources}
-      videoRef={videoRef}
-      getSavedPosition={getSavedPosition}
-      onPositionSave={onSavePosition}
-    />
+    // display:contents 包装不产生盒子，仅用于捕获"最近操作的域"
+    <div className="contents" onPointerDownCapture={() => (shortcutDomainRef.current = "video")}>
+      <VideoPlayer
+        resources={videoResources}
+        videoRef={videoRef}
+        getSavedPosition={getSavedPosition}
+        onPositionSave={onSavePosition}
+      />
+    </div>
   );
   const docPane = (
     <DocViewer resources={docResources} onAttach={course.rootDir ? () => setPickerOpen(true) : undefined} />
@@ -210,32 +240,36 @@ export function ClassroomPage(props: ClassroomPageProps) {
         />
       </main>
 
-      <AudioPlayerBar
-        resources={audioResources}
-        audioRef={audioRef}
-        engineControl={audioControl}
-        onActiveResourceChange={(path) => {
-          currentAudioPathRef.current = path;
-        }}
-      />
+      <div className="contents" onPointerDownCapture={() => (shortcutDomainRef.current = "audio")}>
+        <AudioPlayerBar
+          resources={audioResources}
+          audioRef={audioRef}
+          engineControl={audioControl}
+          onActiveResourceChange={(path) => {
+            currentAudioPathRef.current = path;
+          }}
+        />
+      </div>
 
-      <ToolBar
-        tool={tool}
-        onToolChange={setTool}
-        metronome={{
-          options: metronome.options,
-          updateOptions: metronome.updateOptions,
-          running: metronome.running,
-          toggle: metronome.toggle,
-          activeBeat: metronome.activeBeat,
-          sync: metronome.sync,
-          setSync: metronome.setSync,
-          hasAudio: audioResources.length > 0,
-          getMediaTime,
-          detectingBpm,
-          onDetectBpm: () => void detectBpm(),
-        }}
-      />
+      <div className="contents" onPointerDownCapture={() => (shortcutDomainRef.current = "metronome")}>
+        <ToolBar
+          tool={tool}
+          onToolChange={setTool}
+          metronome={{
+            options: metronome.options,
+            updateOptions: metronome.updateOptions,
+            running: metronome.running,
+            toggle: metronome.toggle,
+            activeBeat: metronome.activeBeat,
+            sync: metronome.sync,
+            setSync: metronome.setSync,
+            hasAudio: audioResources.length > 0,
+            getMediaTime,
+            detectingBpm,
+            onDetectBpm: () => void detectBpm(),
+          }}
+        />
+      </div>
 
       <ResourcePicker
         open={pickerOpen}
