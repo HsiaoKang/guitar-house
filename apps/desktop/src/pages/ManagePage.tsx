@@ -110,21 +110,33 @@ export function ManagePage({ course, onBack, onSave }: ManagePageProps) {
     update((prev) => [...prev, { key: `n${Date.now()}`, name: `新课节 ${prev.length + 1}`, resources: [] }]);
   };
 
+  /** 往课节追加资源（已存在时保持不变，避免节内重复引用） */
+  const appendUnique = (resources: string[], path: string): string[] =>
+    resources.includes(path) ? resources : [...resources, path];
+
   /** 把资源从某课节移动到另一课节；目标为 OUT_TARGET 时仅移出（回到未引用区） */
   const moveResource = (fromKey: string, path: string, targetKey: string) => {
     if (fromKey === targetKey) return;
     update((prev) =>
       prev.map((l) => {
         if (l.key === fromKey) return { ...l, resources: l.resources.filter((r) => r !== path) };
-        if (l.key === targetKey) return { ...l, resources: [...l.resources, path] };
+        if (l.key === targetKey) return { ...l, resources: appendUnique(l.resources, path) };
         return l;
       }),
     );
   };
 
+  /** 把资源复制到另一课节（原课节保留，实现多节共用同一份曲谱/伴奏） */
+  const copyResource = (fromKey: string, path: string, targetKey: string) => {
+    if (fromKey === targetKey) return;
+    update((prev) => prev.map((l) => (l.key === targetKey ? { ...l, resources: appendUnique(l.resources, path) } : l)));
+  };
+
   /** 把未引用文件挂到指定课节 */
   const attachResource = (path: string, targetKey: string) => {
-    update((prev) => prev.map((l) => (l.key === targetKey ? { ...l, resources: [...l.resources, path] } : l)));
+    update((prev) =>
+      prev.map((l) => (l.key === targetKey ? { ...l, resources: appendUnique(l.resources, path) } : l)),
+    );
   };
 
   /** 校验草稿并保存 */
@@ -160,10 +172,14 @@ export function ManagePage({ course, onBack, onSave }: ManagePageProps) {
     onBack();
   };
 
+  /** 其他课节选项（"复制到"目标） */
+  const otherLessons = (excludeKey: string) =>
+    lessons.filter((l) => l.key !== excludeKey).map((l) => ({ value: l.key, label: l.name }));
+
   /** 资源"移动到"下拉的目标课节选项（含移出项） */
   const moveTargets = (excludeKey: string) => [
     { value: OUT_TARGET, label: "移出课节" },
-    ...lessons.filter((l) => l.key !== excludeKey).map((l) => ({ value: l.key, label: l.name })),
+    ...otherLessons(excludeKey),
   ];
 
   return (
@@ -227,6 +243,14 @@ export function ManagePage({ course, onBack, onSave }: ManagePageProps) {
                       <span className="min-w-0 flex-1 truncate" title={path}>
                         {path}
                       </span>
+                      <Select
+                        value=""
+                        placeholder="复制到"
+                        onChange={(target) => copyResource(lesson.key, path, target)}
+                        options={otherLessons(lesson.key)}
+                        className="h-6 shrink-0 border-transparent bg-transparent px-1.5 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 data-[state=open]:opacity-100"
+                        title="复制到其他课节（多节共用同一份资料）"
+                      />
                       <Select
                         value=""
                         placeholder="移动到"
