@@ -17,3 +17,4 @@ export { EmptyState, type EmptyStateProps } from "./components/empty-state";
 export { ContextMenu, type ContextMenuItem, type ContextMenuProps } from "./components/context-menu";
 export { Icon, type IconName, type IconProps } from "./components/icon";
 export { BrandLogo } from "./components/brand-logo";
+export { Toaster, toast } from "./components/toast";

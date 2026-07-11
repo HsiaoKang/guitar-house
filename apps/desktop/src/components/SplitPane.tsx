@@ -2,10 +2,9 @@
  * 左右分割布局
  *
  * 中间分隔条可拖拽调整左右面板宽度比例。
- * 性能策略（针对 PDF 全量重画 / 乐谱整谱重排等昂贵内容）：
- * - 拖动中用 rAF 合帧直改 DOM flexBasis，零 React 重渲染
- * - 拖动期间锁定两侧内容层的像素宽度（容器裁切显示），
- *   ResizeObserver 不触发，昂贵重排只在松手后发生一次
+ * 拖动中用 rAF 合帧直改 DOM flexBasis（零 React 重渲染），
+ * 两侧内容实时跟随（即时反馈原则）；昂贵内容的精绘由各渲染器
+ * 自身防抖（如 PDF 虚拟化 + CSS 即时拉伸 + 停顿精绘）
  */
 import { useCallback, useRef, useState, type ReactNode } from "react";
 
@@ -28,28 +27,20 @@ const MAX_RATIO = 0.8;
 export function SplitPane({ left, right, initialRatio = 0.55 }: SplitPaneProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const leftPaneRef = useRef<HTMLDivElement | null>(null);
-  const leftInnerRef = useRef<HTMLDivElement | null>(null);
-  const rightInnerRef = useRef<HTMLDivElement | null>(null);
   const [ratio, setRatio] = useState(initialRatio);
   const [dragging, setDragging] = useState(false);
 
   /**
-   * 按下分隔条：锁定内容宽度 -> rAF 直改容器占比 -> 松手解锁并提交
+   * 按下分隔条：rAF 合帧直改容器占比，两侧内容实时跟随，松手提交 state
    */
   const onDividerPointerDown = useCallback((e: React.PointerEvent) => {
     const container = containerRef.current;
     const leftPane = leftPaneRef.current;
-    const leftInner = leftInnerRef.current;
-    const rightInner = rightInnerRef.current;
-    if (!container || !leftPane || !leftInner || !rightInner) return;
+    if (!container || !leftPane) return;
     const rect = container.getBoundingClientRect();
     let latest = (e.clientX - rect.left) / rect.width;
     let frame = 0;
     setDragging(true);
-
-    // 关键节点：锁定内容层像素宽，拖动中容器变化不触发内容重排
-    leftInner.style.width = `${leftInner.offsetWidth}px`;
-    rightInner.style.width = `${rightInner.offsetWidth}px`;
 
     const apply = () => {
       frame = 0;
@@ -64,9 +55,6 @@ export function SplitPane({ left, right, initialRatio = 0.55 }: SplitPaneProps) 
       window.removeEventListener("pointerup", up);
       if (frame) cancelAnimationFrame(frame);
       apply();
-      // 解锁内容宽度，昂贵重排在此刻一次性发生
-      leftInner.style.width = "";
-      rightInner.style.width = "";
       setDragging(false);
       setRatio(latest);
     };
@@ -82,21 +70,14 @@ export function SplitPane({ left, right, initialRatio = 0.55 }: SplitPaneProps) 
         className="min-w-0 shrink-0 overflow-hidden"
         style={{ flexBasis: `${ratio * 100}%`, pointerEvents: dragging ? "none" : undefined }}
       >
-        <div ref={leftInnerRef} className="h-full">
-          {left}
-        </div>
+        {left}
       </div>
       <div
         className="w-[5px] shrink-0 cursor-col-resize bg-border transition-colors hover:bg-primary"
         onPointerDown={onDividerPointerDown}
       />
-      <div
-        className="min-w-0 flex-1 overflow-hidden"
-        style={{ pointerEvents: dragging ? "none" : undefined }}
-      >
-        <div ref={rightInnerRef} className="h-full">
-          {right}
-        </div>
+      <div className="min-w-0 flex-1 overflow-hidden" style={{ pointerEvents: dragging ? "none" : undefined }}>
+        {right}
       </div>
     </div>
   );

@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { AnimatePresence, motion } from "motion/react";
-import { IconButton } from "@learning-house/ui";
+import { IconButton, Toaster, toast } from "@learning-house/ui";
 import { LibraryPage } from "./pages/LibraryPage";
 import { ClassroomPage } from "./pages/ClassroomPage";
 import { readDirTree, readManifestName, scanCourseFolder, writeManifest } from "./lib/scanner";
@@ -207,6 +207,7 @@ function App() {
             : c,
         ),
       );
+      toast(`已重新扫描「${fresh.name}」：${fresh.lessons.length} 个课节`);
     },
     [courses, updateCourses],
   );
@@ -317,7 +318,9 @@ function App() {
   const activeCourse = courses.find((c) => c.id === activeCourseId) ?? null;
 
   return (
-    <AnimatePresence mode="wait">
+    <>
+      <Toaster />
+      <AnimatePresence mode="wait">
       {activeCourse ? (
         <motion.div
           key={`classroom-${activeCourse.id}`}
@@ -356,13 +359,14 @@ function App() {
             onImportFolder={importFolder}
             onGenerateAiPrompt={generateAiPrompt}
             onImportByPastedManifest={importByPastedManifest}
-            onRescanCourse={(id) => void rescanCourse(id)}
+            onRescanCourse={rescanCourse}
             onDeleteCourse={deleteCourse}
             themeToggle={themeToggle}
           />
         </motion.div>
       )}
-    </AnimatePresence>
+      </AnimatePresence>
+    </>
   );
 }
 
