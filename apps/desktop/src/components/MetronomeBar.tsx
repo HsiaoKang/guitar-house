@@ -6,9 +6,9 @@
  */
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Button, Checkbox, NumberStepper, Select, Slider, cn } from "@learning-house/ui";
+import { Button, Checkbox, NumberStepper, Select, Slider, Switch, cn } from "@learning-house/ui";
 import type { MetronomeOptions } from "@learning-house/metronome-core";
-import type { SyncConfig, SyncSource } from "../hooks/useMetronome";
+import type { SyncConfig } from "../hooks/useMetronome";
 import { TapTempoModal } from "./TapTempoModal";
 
 /** 可选拍号（每小节拍数） */
@@ -133,15 +133,11 @@ export function MetronomeBar(props: MetronomeBarProps) {
       </div>
 
       <div className={cn("flex shrink-0 items-center gap-2", !hasAudio && "opacity-45")}>
-        <span className="text-xs text-muted-foreground">联动</span>
-        <Select
-          value={sync.source}
+        <Switch
+          checked={sync.source === "audio"}
           disabled={!hasAudio}
-          onChange={(v) => setSync({ source: v as SyncSource })}
-          options={[
-            { value: "none", label: "不联动" },
-            { value: "audio", label: "跟随伴奏", disabled: !hasAudio },
-          ]}
+          onChange={(on) => setSync({ source: on ? "audio" : "none" })}
+          label="跟随伴奏"
           title="伴奏播放时节拍器自动跟随其时间轴（含倍速缩放）"
         />
         {sync.source !== "none" && (

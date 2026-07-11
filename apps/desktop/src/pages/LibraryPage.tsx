@@ -15,6 +15,7 @@ import {
   IconButton,
   Modal,
   ProgressBar,
+  Select,
   cn,
 } from "@learning-house/ui";
 import { COURSE_TYPE_LABELS, type Course, type CourseType } from "../types";
@@ -33,6 +34,8 @@ interface LibraryPageProps {
   onImportByPastedManifest: (rootDir: string, type: CourseType, manifestJson: string) => Promise<boolean>;
   /** 重新扫描课程根文件夹（保留完成状态）；ignoreManifest 时忽略清单强制自动识别 */
   onRescanCourse: (id: string, ignoreManifest?: boolean) => void | Promise<void>;
+  /** 切换课程类型（吉他/通用，决定上课页默认工具） */
+  onChangeCourseType: (id: string, type: CourseType) => void;
   /** 打开课节管理页（人工调整课节与资源归属） */
   onManageCourse: (id: string) => void;
   /** 删除课程（仅移出课程库，不动磁盘文件） */
@@ -66,6 +69,7 @@ export function LibraryPage(props: LibraryPageProps) {
     onGenerateAiPrompt,
     onImportByPastedManifest,
     onRescanCourse,
+    onChangeCourseType,
     onManageCourse,
     onDeleteCourse,
     themeToggle,
@@ -75,6 +79,8 @@ export function LibraryPage(props: LibraryPageProps) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   /** AI 整理会话（提示词 + 目标文件夹 + 用户贴回的结果） */
   const [aiSession, setAiSession] = useState<{ prompt: string; rootDir: string } | null>(null);
+  /** AI 导入的课程类型（决定上课页默认工具） */
+  const [aiCourseType, setAiCourseType] = useState<CourseType>("guitar");
   const [pasted, setPasted] = useState("");
   const [copied, setCopied] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -98,7 +104,7 @@ export function LibraryPage(props: LibraryPageProps) {
   const submitPasted = async () => {
     if (!aiSession || !pasted.trim()) return;
     setImporting(true);
-    const ok = await onImportByPastedManifest(aiSession.rootDir, "general", pasted);
+    const ok = await onImportByPastedManifest(aiSession.rootDir, aiCourseType, pasted);
     setImporting(false);
     if (ok) setAiSession(null);
   };
@@ -141,6 +147,7 @@ export function LibraryPage(props: LibraryPageProps) {
     else if (key === "manage") onManageCourse(course.id);
     else if (key === "rescan") void rescan(course.id);
     else if (key === "reorganize") reorganize(course);
+    else if (key === "toggle-type") onChangeCourseType(course.id, course.type === "guitar" ? "general" : "guitar");
     else if (key === "delete") confirmDelete(course);
   };
 
@@ -188,6 +195,11 @@ export function LibraryPage(props: LibraryPageProps) {
                       label: "重新识别课节（忽略清单）",
                       icon: "sparkles",
                       disabled: !course.rootDir,
+                    },
+                    {
+                      key: "toggle-type",
+                      label: `切换为${COURSE_TYPE_LABELS[course.type === "guitar" ? "general" : "guitar"]}课程`,
+                      icon: "music",
                     },
                     { key: "sep", label: "", separator: true },
                     { key: "delete", label: "从课程库删除", icon: "trash" },
@@ -320,7 +332,16 @@ export function LibraryPage(props: LibraryPageProps) {
             placeholder='{"name": "...", "lessons": [...]}'
             className="h-36 w-full resize-none rounded-md border border-border bg-secondary p-2 font-mono text-xs text-foreground placeholder:text-muted-foreground/50 focus-visible:outline-2 focus-visible:outline-ring"
           />
-          <div className="flex justify-end">
+          <div className="flex items-center justify-end gap-2">
+            <Select
+              value={aiCourseType}
+              onChange={(v) => setAiCourseType(v as CourseType)}
+              options={(Object.keys(COURSE_TYPE_LABELS) as CourseType[]).map((t) => ({
+                value: t,
+                label: `${COURSE_TYPE_LABELS[t]}课程`,
+              }))}
+              title="课程类型决定上课页默认工具（吉他课自带节拍器）"
+            />
             <Button variant="primary" disabled={!pasted.trim() || importing} onClick={() => void submitPasted()}>
               {importing ? "导入中…" : "校验并导入"}
             </Button>

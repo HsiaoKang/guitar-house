@@ -288,6 +288,20 @@ function App() {
   );
 
   /**
+   * 切换课程类型（吉他/通用，决定上课页默认工具）
+   *
+   * @param id 课程 id
+   * @param type 目标类型
+   */
+  const changeCourseType = useCallback(
+    (id: string, type: CourseType) => {
+      updateCourses((prev) => prev.map((c) => (c.id === id ? { ...c, type } : c)));
+      toast(`已切换为${type === "guitar" ? "吉他" : "通用"}课程`);
+    },
+    [updateCourses],
+  );
+
+  /**
    * 从课程库删除课程（不动磁盘文件与进度文件）
    *
    * @param id 课程 id
@@ -538,6 +552,7 @@ function App() {
             onGenerateAiPrompt={generateAiPrompt}
             onImportByPastedManifest={importByPastedManifest}
             onRescanCourse={rescanCourse}
+            onChangeCourseType={changeCourseType}
             onManageCourse={setManagingCourseId}
             onDeleteCourse={deleteCourse}
             themeToggle={themeToggle}

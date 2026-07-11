@@ -12,6 +12,7 @@ export { Select, type SelectOption, type SelectProps } from "./components/select
 export { Checkbox, type CheckboxProps } from "./components/checkbox";
 export { Modal, type ModalProps } from "./components/dialog";
 export { NumberStepper, type NumberStepperProps } from "./components/number-stepper";
+export { Switch, type SwitchProps } from "./components/switch";
 export { Tooltip, TooltipProvider, type TooltipProps } from "./components/tooltip";
 export { ProgressBar, type ProgressBarProps } from "./components/progress";
 export { Tabs, type TabItem, type TabsProps } from "./components/tabs";
