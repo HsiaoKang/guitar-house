@@ -45,14 +45,16 @@ function check(name: string, actual: { bpm: number; phaseSec: number }, wantBpm:
 }
 
 const results = [
-  // 梦的出口场景：真 75，半拍律动强导致库报 150
+  // 梦的出口场景：真 75，半拍律动强导致库报 150（真实样本奇偶比 0.72）
   check("真75被报150", refineTempoAndPhase(synthesize(75, 180, 0, 0.5), 150), 75, 0),
   // 常规场景：真 100 无半拍律动，库报对
   check("真100报100", refineTempoAndPhase(synthesize(100, 180, 0.3, 0), 100), 100, 0.3),
-  // 减半误判场景：真 100，库报 50（候选翻倍应能纠回）
+  // 减半误判场景：真 100，库报 50（反拍与拍点同强，应翻倍纠回）
   check("真100被报50", refineTempoAndPhase(synthesize(100, 180, 0.3, 0), 50), 100, 0.3),
-  // 33 课场景：真 100 且带弱半拍，库报对时不应被先验拉走
+  // 33 课场景：真 100 且带弱半拍，库报对时不应被改动
   check("真100带弱半拍", refineTempoAndPhase(synthesize(100, 180, 0.2, 0.35), 100), 100, 0.2),
+  // 33 课真实形态：连续八分音型反拍能量高（真实样本反拍比 0.91），不得误翻倍
+  check("真100反拍强不翻倍", refineTempoAndPhase(synthesize(100, 180, 0.2, 0.9), 100), 100, 0.2),
 ];
 
 process.exit(results.every(Boolean) ? 0 : 1);
