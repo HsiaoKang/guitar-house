@@ -1,6 +1,6 @@
 [package]
 name = "learning-house"
-version = "0.2.0" # x-release-please-version
+version = "0.3.0" # x-release-please-version
 description = "通用课程管理与上课工具"
 authors = ["HsiaoKang"]
 edition = "2021"
