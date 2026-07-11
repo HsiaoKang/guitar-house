@@ -11,6 +11,7 @@ import { SplitPane } from "../components/SplitPane";
 import { VideoPlayer } from "../components/VideoPlayer";
 import { AudioPlayerBar } from "../components/AudioPlayerBar";
 import { DocViewer } from "../components/DocViewer";
+import { ResourcePicker } from "../components/ResourcePicker";
 import { ToolBar } from "../components/ToolBar";
 import { useMetronome } from "../hooks/useMetronome";
 import { useMediaShortcuts } from "../hooks/useMediaShortcuts";
@@ -38,6 +39,8 @@ interface ClassroomPageProps {
   onSavePosition: (resourcePath: string, position: number) => void;
   /** "下一节"按钮使用计数（本地统计，决定功能去留） */
   onNextLessonUsed: () => void;
+  /** 更新课节的资料关联（写清单固化，relPaths 为文档/音频相对路径全集） */
+  onUpdateLessonResources: (lessonId: string, relPaths: string[]) => Promise<void>;
   /** 主题切换按钮（由 App 注入） */
   themeToggle: React.ReactNode;
 }
@@ -57,10 +60,13 @@ export function ClassroomPage(props: ClassroomPageProps) {
     getSavedPosition,
     onSavePosition,
     onNextLessonUsed,
+    onUpdateLessonResources,
     themeToggle,
   } = props;
   const [lessonIndex, setLessonIndex] = useState(0);
   const [tool, setTool] = useState<ToolKind>(DEFAULT_TOOL_BY_COURSE_TYPE[course.type]);
+  /** "关联资料"选择器开关 */
+  const [pickerOpen, setPickerOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const metronome = useMetronome();
@@ -70,6 +76,11 @@ export function ClassroomPage(props: ClassroomPageProps) {
     setLessonIndex(0);
     setTool(DEFAULT_TOOL_BY_COURSE_TYPE[course.type]);
   }, [course.id, course.type]);
+
+  // 切换课节时收起资料选择器
+  useEffect(() => {
+    setPickerOpen(false);
+  }, [lessonIndex]);
 
   const lesson = course.lessons[Math.min(lessonIndex, course.lessons.length - 1)] ?? null;
 
@@ -116,7 +127,9 @@ export function ClassroomPage(props: ClassroomPageProps) {
       onPositionSave={onSavePosition}
     />
   );
-  const docPane = <DocViewer resources={docResources} />;
+  const docPane = (
+    <DocViewer resources={docResources} onAttach={course.rootDir ? () => setPickerOpen(true) : undefined} />
+  );
 
   return (
     <div className="flex h-full flex-col">
@@ -186,6 +199,14 @@ export function ClassroomPage(props: ClassroomPageProps) {
           hasAudio: audioResources.length > 0,
           getMediaTime,
         }}
+      />
+
+      <ResourcePicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        course={course}
+        lesson={lesson}
+        onConfirm={(relPaths) => onUpdateLessonResources(lesson.id, relPaths)}
       />
     </div>
   );

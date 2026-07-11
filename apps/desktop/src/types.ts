@@ -119,6 +119,18 @@ export function basename(path: string): string {
 }
 
 /**
+ * 计算资源相对课程根目录的路径（清单/进度文件统一存相对路径，课程文件夹可整体搬迁）
+ *
+ * @param rootDir 课程根目录
+ * @param absPath 资源绝对路径
+ * @returns 相对路径；不在根目录下时原样返回
+ */
+export function relativePathOf(rootDir: string, absPath: string): string {
+  const prefix = rootDir.endsWith("/") ? rootDir : `${rootDir}/`;
+  return absPath.startsWith(prefix) ? absPath.slice(prefix.length) : absPath;
+}
+
+/**
  * 根据扩展名判断资源类别
  *
  * @param path 文件路径

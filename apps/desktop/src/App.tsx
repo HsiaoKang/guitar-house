@@ -32,7 +32,17 @@ import {
   saveCourses,
   saveSettings,
 } from "./lib/storage";
-import { SCAN_RULE_LABELS, type AppSettings, type Course, type CourseType, type ResolvedTheme, type ThemeKind } from "./types";
+import {
+  SCAN_RULE_LABELS,
+  basename,
+  resourceKindOf,
+  type AppSettings,
+  type Course,
+  type CourseType,
+  type LessonResource,
+  type ResolvedTheme,
+  type ThemeKind,
+} from "./types";
 import type { CourseManifest, ManifestAudit } from "./lib/scanner";
 
 /** 主题偏好的循环切换顺序 */
@@ -342,6 +352,46 @@ function App() {
   }, []);
 
   /**
+   * 更新某课节的资料资源集合（保留视频资源不动），并固化写入课程清单，
+   * 供上课页"关联资料"使用（如讲解课引用上一节练习曲的曲谱/伴奏）
+   *
+   * @param courseId 课程 id
+   * @param lessonId 课节 id
+   * @param relPaths 该课节应关联的文档/音频相对路径全集（顺序即展示顺序）
+   */
+  const updateLessonResources = useCallback(
+    async (courseId: string, lessonId: string, relPaths: string[]) => {
+      const course = courses.find((c) => c.id === courseId);
+      if (!course?.rootDir) return;
+      const rootDir = course.rootDir;
+      const nextCourse: Course = {
+        ...course,
+        lessons: course.lessons.map((l) => {
+          if (l.id !== lessonId) return l;
+          const videos = l.resources.filter((r) => r.kind === "video");
+          const attachments = relPaths
+            .map((rel): LessonResource | null => {
+              const abs = rootDir.endsWith("/") ? `${rootDir}${rel}` : `${rootDir}/${rel}`;
+              const kind = resourceKindOf(abs);
+              return kind ? { path: abs, name: basename(abs), kind } : null;
+            })
+            .filter((r): r is LessonResource => r !== null);
+          return { ...l, resources: [...videos, ...attachments] };
+        }),
+      };
+      try {
+        // 关键节点：手动关联写入清单固化，之后重扫不会回退
+        await persistCourseManifest(nextCourse);
+        updateCourses((prev) => prev.map((c) => (c.id === courseId ? nextCourse : c)));
+        toast("资料关联已保存");
+      } catch (e) {
+        await showMessage(String(e instanceof Error ? e.message : e), "保存失败");
+      }
+    },
+    [courses, updateCourses],
+  );
+
+  /**
    * 保存管理页的课节草稿：写清单 -> 按清单重扫 -> 更新课程库并返回
    *
    * @param courseId 课程 id
@@ -432,6 +482,9 @@ function App() {
             getSavedPosition={(path) => getSavedPosition(activeCourse.id, path)}
             onSavePosition={(path, pos) => savePosition(activeCourse.id, path, pos)}
             onNextLessonUsed={() => void bumpUsageCounter("nextLessonClicks")}
+            onUpdateLessonResources={(lessonId, relPaths) =>
+              updateLessonResources(activeCourse.id, lessonId, relPaths)
+            }
             themeToggle={themeToggle}
           />
         </motion.div>
