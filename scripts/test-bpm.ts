@@ -16,6 +16,7 @@ import {
   snapBpmToRatios,
   verifyScoreBpm,
 } from "../apps/desktop/src/lib/bpmDetect";
+import { rankScoresForAudio } from "../apps/desktop/src/lib/scoreBpm";
 
 /** 包络格宽（与 bpmDetect 的 ENVELOPE_WIN_SEC 一致） */
 const STEP_SEC = 0.01;
@@ -140,5 +141,16 @@ results.push(
   // 差距过大：接近但超出 2% 容差（谱 84 vs 候选 80/90 均差 5%+），拒绝
   checkScore("谱84×声学120拒绝", 120, 84, null),
 );
+
+// 谱面排序：同目录谱优先于引用来的外部谱
+{
+  const audio = "/课程/资料/42：推弦课件/推弦&揉弦基础练习曲伴奏.mp3";
+  const own = "/课程/资料/42：推弦课件/中级课-推弦基础练习.pdf";
+  const foreign = "/课程/资料/70：毕业曲课件/梦的出口（中级课毕业曲）.pdf";
+  const ranked = rankScoresForAudio(audio, [foreign, own]);
+  const ok = ranked[0] === own;
+  console.log(`[${ok ? "PASS" : "FAIL"}] 谱面排序·同目录优先 -> 首位 ${ranked[0].split("/").pop()}`);
+  results.push(ok);
+}
 
 process.exit(results.every(Boolean) ? 0 : 1);

@@ -15,7 +15,7 @@ import { DocViewer } from "../components/DocViewer";
 import { ResourcePicker } from "../components/ResourcePicker";
 import { ToolBar } from "../components/ToolBar";
 import { alignToScoreBpm, detectBpmFromFile, snapTapToGrid } from "../lib/bpmDetect";
-import { bpmFromScorePdf } from "../lib/scoreBpm";
+import { bpmFromScorePdf, rankScoresForAudio } from "../lib/scoreBpm";
 import { loadMediaMeta, saveMediaMeta, type AudioBeatMeta, type CourseMediaMeta } from "../lib/mediaMeta";
 import { useMetronome, type SyncConfig } from "../hooks/useMetronome";
 import { useMediaShortcuts, type ShortcutTarget } from "../hooks/useMediaShortcuts";
@@ -272,11 +272,11 @@ export function ClassroomPage(props: ClassroomPageProps) {
       let final = { bpm: detected.bpm, offset: detected.offset };
       let source = detected.fromFilename ? "（文件名标注）" : detected.octaveAdjusted ? "（已修正倍频）" : "";
       if (!detected.fromFilename) {
-        // 关键节点：逐份验证本课节谱面的速度标注——标注须精确命中声学
-        // 网格的比率族才采纳（谱面可能是引用的其他曲子，声学网格互证防错谱）
-        for (const res of lesson?.resources ?? []) {
-          if (res.kind !== "pdf") continue;
-          const scoreBpm = await bpmFromScorePdf(res.path).catch(() => null);
+        // 关键节点：按对应可能性排序（同目录谱优先）后逐份验证谱面标注——
+        // 标注须精确命中声学网格的比率族才采纳（防引用来的无关谱误导）
+        const pdfPaths = (lesson?.resources ?? []).filter((r) => r.kind === "pdf").map((r) => r.path);
+        for (const pdfPath of rankScoresForAudio(path, pdfPaths)) {
+          const scoreBpm = await bpmFromScorePdf(pdfPath).catch(() => null);
           if (scoreBpm === null) continue;
           const verified = alignToScoreBpm(path, scoreBpm);
           if (verified) {
