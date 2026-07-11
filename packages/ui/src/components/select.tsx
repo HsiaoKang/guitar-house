@@ -26,6 +26,8 @@ export interface SelectProps
   className?: string;
   /** 触发器 title 提示 */
   title?: string;
+  /** 无选中值时触发器显示的占位文案（动作式下拉可长期显示） */
+  placeholder?: ReactNode;
 }
 
 /**
@@ -34,7 +36,7 @@ export interface SelectProps
  * @param props value/onChange 受控值；options 选项列表
  */
 export const Select = forwardRef<ComponentRef<typeof SelectPrimitive.Trigger>, SelectProps>(
-  ({ value, onChange, options, className, title, ...props }, ref) => (
+  ({ value, onChange, options, className, title, placeholder, ...props }, ref) => (
     <SelectPrimitive.Root value={value} onValueChange={onChange} {...props}>
       <SelectPrimitive.Trigger
         ref={ref}
@@ -44,7 +46,7 @@ export const Select = forwardRef<ComponentRef<typeof SelectPrimitive.Trigger>, S
           className,
         )}
       >
-        <SelectPrimitive.Value />
+        <SelectPrimitive.Value placeholder={placeholder} />
         <SelectPrimitive.Icon asChild>
           <span className="text-muted-foreground">
             <Icon name="chevronDown" size="sm" />

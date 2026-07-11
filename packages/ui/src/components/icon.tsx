@@ -6,12 +6,17 @@
  */
 import type { CSSProperties } from "react";
 import {
+  ArrowDown,
   ArrowLeftRight,
+  ArrowUp,
   Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  FileText,
   FolderOpen,
+  Image,
+  ListTodo,
   Maximize,
   Minus,
   Monitor,
@@ -34,13 +39,18 @@ import {
 
 /** 应用图标名 -> lucide 组件映射（新增图标在此登记） */
 const ICONS = {
+  arrowDown: ArrowDown,
+  arrowUp: ArrowUp,
   back: ChevronLeft,
   check: Check,
   chevronDown: ChevronDown,
   chevronRight: ChevronRight,
   close: X,
+  doc: FileText,
   folderOpen: FolderOpen,
   fullscreen: Maximize,
+  image: Image,
+  manage: ListTodo,
   minus: Minus,
   monitor: Monitor,
   moon: Moon,

@@ -10,6 +10,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { IconButton, Toaster, toast } from "@learning-house/ui";
 import { LibraryPage } from "./pages/LibraryPage";
 import { ClassroomPage } from "./pages/ClassroomPage";
+import { ManagePage } from "./pages/ManagePage";
 import {
   auditManifest,
   parseManifestText,
@@ -31,7 +32,7 @@ import {
   saveSettings,
 } from "./lib/storage";
 import { SCAN_RULE_LABELS, type AppSettings, type Course, type CourseType, type ResolvedTheme, type ThemeKind } from "./types";
-import type { ManifestAudit } from "./lib/scanner";
+import type { CourseManifest, ManifestAudit } from "./lib/scanner";
 
 /** 主题偏好的循环切换顺序 */
 const THEME_CYCLE: Record<ThemeKind, ThemeKind> = {
@@ -67,6 +68,8 @@ function App() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [activeCourseId, setActiveCourseId] = useState<string | null>(null);
+  /** 正在管理课节的课程 id（管理页视图） */
+  const [managingCourseId, setManagingCourseId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   /** 课程 id -> 进度（完成课节 + 续播位置），持久化在课程文件夹内 */
   const progressRef = useRef<Map<string, CourseProgress>>(new Map());
@@ -332,6 +335,41 @@ function App() {
     });
   }, []);
 
+  /**
+   * 保存管理页的课节草稿：写清单 -> 按清单重扫 -> 更新课程库并返回
+   *
+   * @param courseId 课程 id
+   * @param manifest 管理页组装的课节清单
+   * @returns 是否保存成功
+   */
+  const saveManagedManifest = useCallback(
+    async (courseId: string, manifest: CourseManifest): Promise<boolean> => {
+      const target = courses.find((c) => c.id === courseId);
+      if (!target?.rootDir) return false;
+      try {
+        await writeManifest(target.rootDir, manifest);
+        const fresh = await scanCourseFolder(target.rootDir, target.type);
+        const progress = progressRef.current.get(courseId) ?? (await loadCourseProgress(target.rootDir));
+        progressRef.current.set(courseId, progress);
+        updateCourses((prev) =>
+          prev.map((c) =>
+            c.id === courseId
+              ? applyProgress([{ ...fresh, id: c.id, createdAt: c.createdAt }], new Map([[c.id, progress]]))[0]
+              : c,
+          ),
+        );
+        toast(`已保存课节调整：${fresh.lessons.length} 个课节`);
+        setManagingCourseId(null);
+        return true;
+      } catch (e) {
+        await showMessage(String(e instanceof Error ? e.message : e), "保存失败");
+        return false;
+      }
+    },
+    [courses, updateCourses],
+  );
+
+  // 关键节点：提前返回必须位于全部 hooks 之后，否则 loaded 翻转时 hooks 数量变化会触发 React 报错
   if (!loaded) {
     return <div className="flex h-full items-center justify-center text-muted-foreground">加载中…</div>;
   }
@@ -347,12 +385,28 @@ function App() {
   );
 
   const activeCourse = courses.find((c) => c.id === activeCourseId) ?? null;
+  const managingCourse = courses.find((c) => c.id === managingCourseId) ?? null;
 
   return (
     <>
       <Toaster />
       <AnimatePresence mode="wait">
-      {activeCourse ? (
+      {managingCourse ? (
+        <motion.div
+          key={`manage-${managingCourse.id}`}
+          className="h-full"
+          initial={{ opacity: 0, scale: 0.985 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 1.01 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+        >
+          <ManagePage
+            course={managingCourse}
+            onBack={() => setManagingCourseId(null)}
+            onSave={(manifest) => saveManagedManifest(managingCourse.id, manifest)}
+          />
+        </motion.div>
+      ) : activeCourse ? (
         <motion.div
           key={`classroom-${activeCourse.id}`}
           className="h-full"
@@ -391,6 +445,7 @@ function App() {
             onGenerateAiPrompt={generateAiPrompt}
             onImportByPastedManifest={importByPastedManifest}
             onRescanCourse={rescanCourse}
+            onManageCourse={setManagingCourseId}
             onDeleteCourse={deleteCourse}
             themeToggle={themeToggle}
           />

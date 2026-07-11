@@ -4,15 +4,16 @@
  * 针对下载类网课的两种主流打包结构,不依赖清单文件自动归纳课节:
  *
  * 1. 平铺视频型:根目录平铺编号视频 + 独立资料文件夹
- *    - 每个编号视频一个课节;文件名内含相同"课号"(如 -12：) 或
- *      相同"第X集/课"的视频合并为一节
+ *    - 每个视频文件即一个课节,与文件夹原样一一对应(课节数=视频数),
+ *      不做上/中/下等多集合并,保证用户能按文件数量直接核对
  * 2. 嵌套课时型:根目录只有一个"视频容器"文件夹(内含一批课时子文件夹),
  *    其余是纯资料文件夹
  *    - 容器下每个含视频的课时子文件夹归纳为一个课节(课时内讲义等资源随课节)
  *
  * 两种结构共用资料匹配:资料文件夹自顶向下匹配课节
- * (课号前缀 > 集号 > 主题文本子串/子序列),命中后整个子树归入对应课节,
- * 未命中则下钻子文件夹继续;全部未命中的归入末尾"未分组资料"课节。
+ * (课号前缀 > 集号 > 主题文本子串/子序列),命中后整个子树归入全部命中课节
+ * (同课号的多节各挂一份),未命中则下钻子文件夹继续;
+ * 全部未命中的归入末尾"未分组资料"课节。
  *
  * 本模块为纯函数,输入目录树、输出相对路径课节,便于脱离 Tauri 环境测试。
  */
@@ -76,14 +77,6 @@ interface ParsedVideo {
   title: string;
 }
 
-/** 视频分组(一组 = 一个课节) */
-interface VideoGroup {
-  num: number;
-  lessonNo: number | null;
-  episode: number | null;
-  videos: ParsedVideo[];
-}
-
 /**
  * 启发式组课统一入口:识别目录结构并归纳课节,
  * 两种结构都不匹配时返回 null(调用方回退默认规则)
@@ -142,20 +135,20 @@ export function detectNestedLessonCourse(tree: DirNode): DirNode | null {
 // ---------------------------------------------------------------------------
 
 /**
- * 平铺视频结构组课:每个编号视频一节(同课号/同集合并),
- * 资料文件夹匹配归入,未命中进"未分组资料"
+ * 平铺视频结构组课:每个视频文件一节,课节数与视频文件数严格一致
+ * (不合并上/中/下多集,便于用户按文件数量核对);
+ * 资料文件夹匹配归入(同课号多节各挂一份),未命中进"未分组资料"
  *
  * @param tree 课程根目录树
  * @returns 课节列表
  */
 export function buildFlatVideoLessons(tree: DirNode): HeuristicLesson[] {
-  const groups = groupVideos(parseVideos(tree));
-  const lessons: LessonDraft[] = groups.map((g) => ({
-    lessonNo: g.lessonNo,
-    episode: g.episode,
-    titles: g.videos.map((v) => v.title),
-    name: groupName(g),
-    resources: g.videos.map((v) => v.file),
+  const lessons: LessonDraft[] = parseVideos(tree).map((video) => ({
+    lessonNo: video.lessonNo,
+    episode: video.episode,
+    titles: [video.title],
+    name: videoLessonName(video),
+    resources: [video.file],
   }));
 
   const unmatched: string[] = [];
@@ -166,6 +159,19 @@ export function buildFlatVideoLessons(tree: DirNode): HeuristicLesson[] {
   unmatched.push(...tree.files.filter((f) => resourceKindOf(f) !== null && resourceKindOf(f) !== "video"));
 
   return finalizeLessons(lessons, unmatched);
+}
+
+/**
+ * 计算单个视频课节的展示名:
+ * 有课号用「M：标题」;标题自带集号信息则直接用标题;否则「N. 标题」
+ *
+ * @param video 解析后的视频
+ * @returns 课节名
+ */
+function videoLessonName(video: ParsedVideo): string {
+  if (video.lessonNo !== null) return `${video.lessonNo}：${video.title}`;
+  if (video.episode !== null) return video.title;
+  return video.num === Number.MAX_SAFE_INTEGER ? video.title : `${video.num}. ${video.title}`;
 }
 
 /**
@@ -225,55 +231,6 @@ function dedupeDashTitle(title: string): string {
   const before = normalizeText(title.slice(0, idx));
   const after = title.slice(idx + 1).trim();
   return before.length > 0 && before === normalizeText(after) ? after : title;
-}
-
-/**
- * 把视频按 课号 > 集号 > 序号 分组(同组合并为一个课节)
- *
- * @param videos 解析后的视频列表(已按序号排序)
- * @returns 分组列表(按组内最小序号排序)
- */
-function groupVideos(videos: ParsedVideo[]): VideoGroup[] {
-  const groups = new Map<string, VideoGroup>();
-  for (const video of videos) {
-    const key =
-      video.lessonNo !== null ? `L${video.lessonNo}` : video.episode !== null ? `E${video.episode}` : `N${video.file}`;
-    const group = groups.get(key);
-    if (group) {
-      group.num = Math.min(group.num, video.num);
-      group.videos.push(video);
-    } else {
-      groups.set(key, { num: video.num, lessonNo: video.lessonNo, episode: video.episode, videos: [video] });
-    }
-  }
-  return [...groups.values()].sort((a, b) => a.num - b.num);
-}
-
-/**
- * 计算课节组的展示名:
- * 课号组「M：标题」/ 集号组「第X集」/ 单视频「N. 标题」
- *
- * @param group 视频分组
- * @returns 课节名
- */
-function groupName(group: VideoGroup): string {
-  if (group.lessonNo !== null) return `${group.lessonNo}：${commonTitle(group)}`;
-  if (group.episode !== null) return `第${chineseNumeral(group.episode)}集`;
-  const only = group.videos[0];
-  return only.num === Number.MAX_SAFE_INTEGER ? only.title : `${only.num}. ${only.title}`;
-}
-
-/**
- * 取分组的公共标题:单视频直接用其标题;多视频时剥离尾部
- * 「（上/下）」等括号差异后全同则用之,否则退回首个视频的标题
- *
- * @param group 视频分组
- * @returns 公共标题
- */
-function commonTitle(group: VideoGroup): string {
-  if (group.videos.length === 1) return group.videos[0].title;
-  const stripped = group.videos.map((v) => v.title.replace(/（[^（）]*）$/u, "").trim());
-  return stripped.every((s) => s === stripped[0]) && stripped[0] ? stripped[0] : group.videos[0].title;
 }
 
 // ---------------------------------------------------------------------------
@@ -486,20 +443,6 @@ function parseChineseNumeral(text: string): number {
   const tens = tenIdx === 0 ? 1 : (DIGITS[text[tenIdx - 1]] ?? 0);
   const ones = tenIdx === text.length - 1 ? 0 : (DIGITS[text[tenIdx + 1]] ?? 0);
   return tens * 10 + ones;
-}
-
-/**
- * 数值转中文数字(1~99,用于「第X集」课节名)
- *
- * @param n 数值
- * @returns 中文数字文本
- */
-function chineseNumeral(n: number): string {
-  const DIGITS = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
-  if (n < 10) return DIGITS[n];
-  const tens = Math.floor(n / 10);
-  const ones = n % 10;
-  return `${tens > 1 ? DIGITS[tens] : ""}十${DIGITS[ones]}`;
 }
 
 /**

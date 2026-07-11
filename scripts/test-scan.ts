@@ -100,9 +100,13 @@ function testOneCourse(dir: string, noManifest: boolean): ScanReport {
     let lessons: HeuristicLesson[];
 
     const heuristic = buildHeuristicLessons(tree);
-    if (!noManifest && fs.existsSync(path.join(dir, "learning-house.json"))) {
+    // 与 scanner.ts 一致的清单查找顺序：.learninghouse/manifest.json > 旧版根目录 learning-house.json
+    const manifestPath = [".learninghouse/manifest.json", "learning-house.json"]
+      .map((p) => path.join(dir, p))
+      .find((p) => fs.existsSync(p));
+    if (!noManifest && manifestPath) {
       report.rule = "manifest";
-      lessons = (JSON.parse(fs.readFileSync(path.join(dir, "learning-house.json"), "utf8")) as { lessons: HeuristicLesson[] }).lessons;
+      lessons = (JSON.parse(fs.readFileSync(manifestPath, "utf8")) as { lessons: HeuristicLesson[] }).lessons;
     } else if (heuristic) {
       report.rule = "heuristic";
       lessons = heuristic;

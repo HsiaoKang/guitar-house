@@ -195,6 +195,18 @@ export async function persistCourseManifest(course: Course): Promise<void> {
 }
 
 /**
+ * 列出课程文件夹内全部受支持格式文件的相对路径（按名称自然排序），
+ * 供课节管理页对照"未引用文件"使用
+ *
+ * @param rootDir 课程根文件夹绝对路径
+ * @returns 相对路径列表
+ */
+export async function listCourseFiles(rootDir: string): Promise<string[]> {
+  const tree = await readDirTree(rootDir, 0);
+  return flattenTreePaths(tree, "").sort((a, b) => a.localeCompare(b, "zh-CN", { numeric: true }));
+}
+
+/**
  * 展平目录树为相对路径列表（仅受支持格式的文件）
  *
  * @param node 目录树节点

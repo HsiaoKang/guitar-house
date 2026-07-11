@@ -32,6 +32,8 @@ interface LibraryPageProps {
   onImportByPastedManifest: (rootDir: string, type: CourseType, manifestJson: string) => Promise<boolean>;
   /** 重新扫描课程根文件夹（保留完成状态）；ignoreManifest 时忽略清单强制自动识别 */
   onRescanCourse: (id: string, ignoreManifest?: boolean) => void | Promise<void>;
+  /** 打开课节管理页（人工调整课节与资源归属） */
+  onManageCourse: (id: string) => void;
   /** 删除课程（仅移出课程库，不动磁盘文件） */
   onDeleteCourse: (id: string) => void;
   /** 主题切换按钮（由 App 注入） */
@@ -63,6 +65,7 @@ export function LibraryPage(props: LibraryPageProps) {
     onGenerateAiPrompt,
     onImportByPastedManifest,
     onRescanCourse,
+    onManageCourse,
     onDeleteCourse,
     themeToggle,
   } = props;
@@ -132,6 +135,7 @@ export function LibraryPage(props: LibraryPageProps) {
    */
   const onCardMenuSelect = (course: Course, key: string) => {
     if (key === "open") onOpenCourse(course.id);
+    else if (key === "manage") onManageCourse(course.id);
     else if (key === "rescan") void rescan(course.id);
     else if (key === "reorganize") reorganize(course);
     else if (key === "delete") confirmDelete(course);
@@ -173,6 +177,7 @@ export function LibraryPage(props: LibraryPageProps) {
                   key={course.id}
                   items={[
                     { key: "open", label: "进入课程", icon: "folderOpen" },
+                    { key: "manage", label: "管理课节", icon: "manage", disabled: !course.rootDir },
                     { key: "rescan", label: "重新扫描", icon: "rescan", disabled: !course.rootDir },
                     {
                       key: "reorganize",
@@ -215,6 +220,13 @@ export function LibraryPage(props: LibraryPageProps) {
                     className="flex justify-end gap-1.5 border-t border-border pt-2.5"
                     onClick={(e) => e.stopPropagation()}
                   >
+                    {course.rootDir && (
+                      <IconButton
+                        name="manage"
+                        label="管理课节（调整资源归属）"
+                        onClick={() => onManageCourse(course.id)}
+                      />
+                    )}
                     {course.rootDir && (
                       <IconButton
                         name="rescan"
