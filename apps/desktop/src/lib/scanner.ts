@@ -41,11 +41,25 @@ interface ManifestLesson {
 }
 
 /** 课节清单文件结构 */
-interface CourseManifest {
+export interface CourseManifest {
   /** 课程名（缺省时取根文件夹名） */
   name?: string;
   /** 课节列表（顺序即展示顺序） */
   lessons: ManifestLesson[];
+}
+
+/** 清单与磁盘文件的对照结果（贴回导入前的体检报告） */
+export interface ManifestAudit {
+  /** 清单引用了但磁盘上不存在的路径（AI 写错/虚构的路径） */
+  missingPaths: string[];
+  /** 磁盘上存在但未被任何课节引用的视频（AI 遗漏的视频） */
+  unreferencedVideos: string[];
+}
+
+/** 扫描选项 */
+export interface ScanOptions {
+  /** 忽略清单文件，强制走启发式/默认规则（用于清单质量差时重新识别） */
+  ignoreManifest?: boolean;
 }
 
 /**
@@ -54,20 +68,31 @@ interface CourseManifest {
  *
  * @param rootDir 课程根文件夹绝对路径
  * @param type 课程类型
+ * @param options 扫描选项（ignoreManifest 时跳过清单直接自动识别）
  * @returns 生成的课程（可能包含空课节列表，由调用方决定如何提示）
  */
-export async function scanCourseFolder(rootDir: string, type: CourseType): Promise<Course> {
-  // 清单查找顺序：.learninghouse/manifest.json > 旧版根目录 learning-house.json
-  for (const candidate of [MANIFEST_FILENAME, LEGACY_MANIFEST_FILENAME]) {
-    const manifestPath = joinPath(rootDir, candidate);
-    if (await exists(manifestPath)) {
-      return scanByManifest(rootDir, type, manifestPath);
+export async function scanCourseFolder(rootDir: string, type: CourseType, options?: ScanOptions): Promise<Course> {
+  if (!options?.ignoreManifest) {
+    // 清单查找顺序：.learninghouse/manifest.json > 旧版根目录 learning-house.json
+    for (const candidate of [MANIFEST_FILENAME, LEGACY_MANIFEST_FILENAME]) {
+      const manifestPath = joinPath(rootDir, candidate);
+      if (await exists(manifestPath)) {
+        return scanByManifest(rootDir, type, manifestPath);
+      }
     }
   }
   const tree = await readDirTree(rootDir, 0);
   const heuristic = buildHeuristicLessons(tree);
   const lessons = heuristic ? lessonsFromHeuristic(rootDir, heuristic) : lessonsByDefaultRule(rootDir, tree);
-  return { id: genId(), name: rootNameOf(rootDir), type, rootDir, lessons, createdAt: Date.now() };
+  return {
+    id: genId(),
+    name: rootNameOf(rootDir),
+    type,
+    rootDir,
+    lessons,
+    createdAt: Date.now(),
+    scanRule: heuristic ? "heuristic" : "default",
+  };
 }
 
 /**
@@ -92,24 +117,97 @@ export async function readManifestName(rootDir: string): Promise<string | null> 
 }
 
 /**
- * 校验并写入课节清单到课程数据目录（.learninghouse/manifest.json）。
- * 供"AI 整理结果贴回导入"使用：先解析校验，不合法时抛错并不落盘。
+ * 解析贴回的清单 JSON 文本（容忍 AI 常见的 markdown 代码块包裹），不合法时抛错
  *
- * @param rootDir 课程根文件夹绝对路径
- * @param manifestJson 清单 JSON 文本（允许带 AI 常见的 markdown 代码块包裹）
+ * @param manifestJson 清单 JSON 文本
+ * @returns 校验通过的清单对象
  */
-export async function writeManifest(rootDir: string, manifestJson: string): Promise<void> {
-  // 容忍 AI 输出常见的 ```json ... ``` 包裹
+export function parseManifestText(manifestJson: string): CourseManifest {
   const cleaned = manifestJson
     .trim()
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```$/, "");
-  const manifest = parseManifest(cleaned);
+  return parseManifest(cleaned);
+}
+
+/**
+ * 对照磁盘文件体检清单质量：找出"引用了不存在的路径"与"被遗漏的视频"。
+ * 全程纯字符串集合比较（统一 NFC 规范化，规避 macOS NFD 文件名差异）。
+ *
+ * @param rootDir 课程根文件夹绝对路径
+ * @param manifest 已解析的清单对象
+ * @returns 体检报告（两个列表都为空即视为清单健康）
+ */
+export async function auditManifest(rootDir: string, manifest: CourseManifest): Promise<ManifestAudit> {
+  const tree = await readDirTree(rootDir, 0);
+  const diskPaths = flattenTreePaths(tree, "");
+  const diskSet = new Set(diskPaths.map((p) => p.normalize("NFC")));
+  const diskVideos = new Set(
+    diskPaths.filter((p) => resourceKindOf(p) === "video").map((p) => p.normalize("NFC")),
+  );
+
+  const missingPaths: string[] = [];
+  const referenced = new Set<string>();
+  for (const lesson of manifest.lessons) {
+    for (const raw of lesson.resources) {
+      // 绝对路径不参与相对路径对照（交给导入时的 exists 检查兜底）
+      if (isAbsolutePath(raw)) continue;
+      const rel = raw.normalize("NFC").replace(/\\/g, "/").replace(/^\.\//, "");
+      referenced.add(rel);
+      if (!diskSet.has(rel)) missingPaths.push(raw);
+    }
+  }
+  const unreferencedVideos = [...diskVideos].filter((v) => !referenced.has(v)).sort();
+  return { missingPaths, unreferencedVideos };
+}
+
+/**
+ * 写入课节清单到课程数据目录（.learninghouse/manifest.json）
+ *
+ * @param rootDir 课程根文件夹绝对路径
+ * @param manifest 清单对象
+ */
+export async function writeManifest(rootDir: string, manifest: CourseManifest): Promise<void> {
   const dataDir = joinPath(rootDir, COURSE_DATA_DIR);
   if (!(await exists(dataDir))) {
     await mkdir(dataDir, { recursive: true });
   }
   await writeTextFile(joinPath(rootDir, MANIFEST_FILENAME), JSON.stringify(manifest, null, 2));
+}
+
+/**
+ * 把扫描结果固化为清单写回课程数据目录（"重新识别"后覆盖劣质清单用），
+ * 资源路径以相对课程根目录的形式写入，保持清单可随文件夹迁移。
+ *
+ * @param course 扫描得到的课程对象（rootDir 必须存在）
+ */
+export async function persistCourseManifest(course: Course): Promise<void> {
+  if (!course.rootDir) return;
+  const rootPrefix = course.rootDir.endsWith("/") ? course.rootDir : `${course.rootDir}/`;
+  const manifest: CourseManifest = {
+    name: course.name,
+    lessons: course.lessons.map((l) => ({
+      name: l.name,
+      resources: l.resources.map((r) => (r.path.startsWith(rootPrefix) ? r.path.slice(rootPrefix.length) : r.path)),
+    })),
+  };
+  await writeManifest(course.rootDir, manifest);
+}
+
+/**
+ * 展平目录树为相对路径列表（仅受支持格式的文件）
+ *
+ * @param node 目录树节点
+ * @param prefix 相对路径前缀（根为空串）
+ */
+function flattenTreePaths(node: DirNode, prefix: string): string[] {
+  const paths = node.files
+    .filter((f) => resourceKindOf(f) !== null)
+    .map((f) => (prefix ? `${prefix}/${f}` : f));
+  for (const dir of node.dirs) {
+    paths.push(...flattenTreePaths(dir, prefix ? `${prefix}/${dir.name}` : dir.name));
+  }
+  return paths;
 }
 
 /**
@@ -159,6 +257,7 @@ async function scanByManifest(rootDir: string, type: CourseType, manifestPath: s
     rootDir,
     lessons,
     createdAt: Date.now(),
+    scanRule: "manifest",
   };
 }
 

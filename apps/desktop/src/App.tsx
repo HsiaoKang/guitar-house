@@ -10,8 +10,16 @@ import { AnimatePresence, motion } from "motion/react";
 import { IconButton, Toaster, toast } from "@learning-house/ui";
 import { LibraryPage } from "./pages/LibraryPage";
 import { ClassroomPage } from "./pages/ClassroomPage";
-import { readDirTree, readManifestName, scanCourseFolder, writeManifest } from "./lib/scanner";
-import { showMessage } from "./lib/dialogs";
+import {
+  auditManifest,
+  parseManifestText,
+  persistCourseManifest,
+  readDirTree,
+  readManifestName,
+  scanCourseFolder,
+  writeManifest,
+} from "./lib/scanner";
+import { showConfirm, showMessage } from "./lib/dialogs";
 import { buildOrganizePrompt } from "./lib/aiPrompt";
 import { loadCourseProgress, saveCourseProgress, type CourseProgress } from "./lib/progress";
 import {
@@ -22,7 +30,8 @@ import {
   saveCourses,
   saveSettings,
 } from "./lib/storage";
-import type { AppSettings, Course, CourseType, ResolvedTheme, ThemeKind } from "./types";
+import { SCAN_RULE_LABELS, type AppSettings, type Course, type CourseType, type ResolvedTheme, type ThemeKind } from "./types";
+import type { ManifestAudit } from "./lib/scanner";
 
 /** 主题偏好的循环切换顺序 */
 const THEME_CYCLE: Record<ThemeKind, ThemeKind> = {
@@ -157,7 +166,8 @@ function App() {
   }, []);
 
   /**
-   * 接收用户贴回的 AI 清单 JSON：写入课程文件夹并直接按清单导入
+   * 接收用户贴回的 AI 清单 JSON：先对照磁盘体检（缺失路径/遗漏视频），
+   * 有问题时列出明细请用户确认，通过后写入课程文件夹并按清单导入
    *
    * @param rootDir 课程根文件夹
    * @param type 课程类型
@@ -166,7 +176,14 @@ function App() {
   const importByPastedManifest = useCallback(
     async (rootDir: string, type: CourseType, manifestJson: string) => {
       try {
-        await writeManifest(rootDir, manifestJson);
+        const manifest = parseManifestText(manifestJson);
+        // 关键节点：写盘前体检清单质量，AI 写错路径或漏视频时给用户拦截机会
+        const audit = await auditManifest(rootDir, manifest);
+        if (audit.missingPaths.length > 0 || audit.unreferencedVideos.length > 0) {
+          const ok = await showConfirm(buildAuditText(audit), "清单体检未通过");
+          if (!ok) return false;
+        }
+        await writeManifest(rootDir, manifest);
         const course = await scanCourseFolder(rootDir, type);
         if (course.lessons.length === 0) {
           await showMessage("清单未匹配到任何有效资源，请检查 AI 输出的路径是否与文件一致。", "导入失败");
@@ -175,6 +192,7 @@ function App() {
         const progress = await loadCourseProgress(rootDir);
         progressRef.current.set(course.id, progress);
         updateCourses((prev) => [...prev, ...applyProgress([course], progressRef.current)]);
+        toast(`已按清单导入「${course.name}」：${course.lessons.length} 个课节`);
         return true;
       } catch (e) {
         await showMessage(String(e instanceof Error ? e.message : e), "导入失败");
@@ -188,16 +206,28 @@ function App() {
    * 重新扫描课程根文件夹，进度按课节名从进度文件继承
    *
    * @param id 课程 id
+   * @param ignoreManifest 为 true 时忽略清单强制自动识别，并把新结果固化覆盖原清单
+   *                       （清单被 AI 整理坏时的自救出口）
    */
   const rescanCourse = useCallback(
-    async (id: string) => {
+    async (id: string, ignoreManifest = false) => {
       const target = courses.find((c) => c.id === id);
       if (!target?.rootDir) return;
-      const fresh = await scanCourseFolder(target.rootDir, target.type).catch(async (e: unknown) => {
-        await showMessage(String(e instanceof Error ? e.message : e), "重新扫描失败");
-        return null;
-      });
+      const fresh = await scanCourseFolder(target.rootDir, target.type, { ignoreManifest }).catch(
+        async (e: unknown) => {
+          await showMessage(String(e instanceof Error ? e.message : e), "重新扫描失败");
+          return null;
+        },
+      );
       if (!fresh) return;
+      if (fresh.lessons.length === 0) {
+        await showMessage("重新识别没有找到可用资源，保持原课节不变。", "重新扫描");
+        return;
+      }
+      // 关键节点：重新识别的结果写回清单，让下次重扫不再回到劣质清单
+      if (ignoreManifest) {
+        await persistCourseManifest(fresh).catch(() => undefined);
+      }
       const progress = progressRef.current.get(id) ?? (await loadCourseProgress(target.rootDir));
       progressRef.current.set(id, progress);
       updateCourses((prev) =>
@@ -207,7 +237,8 @@ function App() {
             : c,
         ),
       );
-      toast(`已重新扫描「${fresh.name}」：${fresh.lessons.length} 个课节`);
+      const ruleLabel = fresh.scanRule ? SCAN_RULE_LABELS[fresh.scanRule] : "";
+      toast(`已重新扫描「${fresh.name}」：${fresh.lessons.length} 个课节${ruleLabel ? `（${ruleLabel}）` : ""}`);
     },
     [courses, updateCourses],
   );
@@ -394,6 +425,30 @@ function applyProgress(list: Course[], progressMap: Map<string, CourseProgress>)
 function relativeTo(rootDir: string, absPath: string): string {
   const prefix = rootDir.endsWith("/") ? rootDir : `${rootDir}/`;
   return absPath.startsWith(prefix) ? absPath.slice(prefix.length) : absPath;
+}
+
+/** 体检明细里最多列出的条目数（对话框空间有限） */
+const AUDIT_SAMPLE_LIMIT = 5;
+
+/**
+ * 把清单体检报告组装成确认对话框文案（列出前几条明细）
+ *
+ * @param audit 清单体检结果
+ */
+function buildAuditText(audit: ManifestAudit): string {
+  const parts: string[] = [];
+  if (audit.unreferencedVideos.length > 0) {
+    const sample = audit.unreferencedVideos.slice(0, AUDIT_SAMPLE_LIMIT).map((p) => `  · ${p}`);
+    if (audit.unreferencedVideos.length > AUDIT_SAMPLE_LIMIT) sample.push("  · …");
+    parts.push(`有 ${audit.unreferencedVideos.length} 个视频没被清单引用（会看不到这些课）：\n${sample.join("\n")}`);
+  }
+  if (audit.missingPaths.length > 0) {
+    const sample = audit.missingPaths.slice(0, AUDIT_SAMPLE_LIMIT).map((p) => `  · ${p}`);
+    if (audit.missingPaths.length > AUDIT_SAMPLE_LIMIT) sample.push("  · …");
+    parts.push(`有 ${audit.missingPaths.length} 个路径在文件夹里不存在（AI 可能写错了）：\n${sample.join("\n")}`);
+  }
+  parts.push("建议把以上问题反馈给 AI 重新生成。仍要按这份清单导入吗？");
+  return parts.join("\n\n");
 }
 
 export default App;

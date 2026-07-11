@@ -9,6 +9,7 @@ import { motion } from "motion/react";
 import {
   BrandLogo,
   Button,
+  ContextMenu,
   EmptyState,
   Icon,
   IconButton,
@@ -29,8 +30,8 @@ interface LibraryPageProps {
   onGenerateAiPrompt: () => Promise<{ prompt: string; rootDir: string } | null>;
   /** 用户贴回 AI 清单后写入并导入，返回是否成功 */
   onImportByPastedManifest: (rootDir: string, type: CourseType, manifestJson: string) => Promise<boolean>;
-  /** 重新扫描课程根文件夹（保留完成状态） */
-  onRescanCourse: (id: string) => void | Promise<void>;
+  /** 重新扫描课程根文件夹（保留完成状态）；ignoreManifest 时忽略清单强制自动识别 */
+  onRescanCourse: (id: string, ignoreManifest?: boolean) => void | Promise<void>;
   /** 删除课程（仅移出课程库，不动磁盘文件） */
   onDeleteCourse: (id: string) => void;
   /** 主题切换按钮（由 App 注入） */
@@ -97,13 +98,43 @@ export function LibraryPage(props: LibraryPageProps) {
   };
 
   /** 触发重扫并维持旋转态 */
-  const rescan = async (id: string) => {
+  const rescan = async (id: string, ignoreManifest = false) => {
     setRescanningId(id);
     try {
-      await onRescanCourse(id);
+      await onRescanCourse(id, ignoreManifest);
     } finally {
       setRescanningId(null);
     }
+  };
+
+  /** 确认后删除课程（仅移出课程库） */
+  const confirmDelete = (course: Course) => {
+    void showConfirm(`确认从课程库删除「${course.name}」？磁盘文件不会被删除。`).then(
+      (ok) => ok && onDeleteCourse(course.id),
+    );
+  };
+
+  /** 忽略清单重新识别（清单被 AI 整理坏时的自救出口），先确认再执行 */
+  const reorganize = (course: Course) => {
+    void showConfirm(
+      `将忽略现有课节清单，按文件夹结构重新自动识别「${course.name}」的课节，并用新结果覆盖清单。学习进度会按课节名保留。继续吗？`,
+      "重新识别课节",
+    ).then((ok) => {
+      if (ok) void rescan(course.id, true);
+    });
+  };
+
+  /**
+   * 课程卡片右键菜单选择分发
+   *
+   * @param course 目标课程
+   * @param key 菜单项标识
+   */
+  const onCardMenuSelect = (course: Course, key: string) => {
+    if (key === "open") onOpenCourse(course.id);
+    else if (key === "rescan") void rescan(course.id);
+    else if (key === "reorganize") reorganize(course);
+    else if (key === "delete") confirmDelete(course);
   };
 
   return (
@@ -138,8 +169,23 @@ export function LibraryPage(props: LibraryPageProps) {
               const { done, total } = progressOf(course);
               const percent = total > 0 ? Math.round((done / total) * 100) : 0;
               return (
-                <motion.div
+                <ContextMenu
                   key={course.id}
+                  items={[
+                    { key: "open", label: "进入课程", icon: "folderOpen" },
+                    { key: "rescan", label: "重新扫描", icon: "rescan", disabled: !course.rootDir },
+                    {
+                      key: "reorganize",
+                      label: "重新识别课节（忽略清单）",
+                      icon: "sparkles",
+                      disabled: !course.rootDir,
+                    },
+                    { key: "sep", label: "", separator: true },
+                    { key: "delete", label: "从课程库删除", icon: "trash" },
+                  ]}
+                  onSelect={(key) => onCardMenuSelect(course, key)}
+                >
+                <motion.div
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25, delay: i * 0.04, ease: "easeOut" }}
@@ -178,17 +224,10 @@ export function LibraryPage(props: LibraryPageProps) {
                         onClick={() => void rescan(course.id)}
                       />
                     )}
-                    <IconButton
-                      name="trash"
-                      label="删除课程"
-                      onClick={() => {
-                        void showConfirm(`确认从课程库删除「${course.name}」？磁盘文件不会被删除。`).then(
-                          (ok) => ok && onDeleteCourse(course.id),
-                        );
-                      }}
-                    />
+                    <IconButton name="trash" label="删除课程" onClick={() => confirmDelete(course)} />
                   </div>
                 </motion.div>
+                </ContextMenu>
               );
             })}
           </div>

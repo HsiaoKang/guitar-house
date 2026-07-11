@@ -31,6 +31,16 @@ export interface Lesson {
 /** 课程类型：决定上课页默认工具 */
 export type CourseType = "guitar" | "general";
 
+/** 组课来源：清单文件 / 平铺视频启发式 / 默认子文件夹规则 */
+export type ScanRule = "manifest" | "heuristic" | "default";
+
+/** 组课来源显示名（重扫结果提示用） */
+export const SCAN_RULE_LABELS: Record<ScanRule, string> = {
+  manifest: "按清单组课",
+  heuristic: "自动识别",
+  default: "按子文件夹",
+};
+
 /** 课程 */
 export interface Course {
   id: string;
@@ -42,6 +52,8 @@ export interface Course {
   lessons: Lesson[];
   /** 创建时间戳（毫秒） */
   createdAt: number;
+  /** 最近一次扫描的组课来源（旧数据可能缺省） */
+  scanRule?: ScanRule;
 }
 
 /** 实际渲染主题 */
