@@ -21,7 +21,7 @@
     "store:default",
     "updater:default",
     "process:allow-restart",
-    "opener:allow-open-url",
+    "opener:default",
     {
       "identifier": "fs:scope",
       "allow": [{ "path": "**" }, { "path": "**/.learninghouse" }, { "path": "**/.learninghouse/**" }]

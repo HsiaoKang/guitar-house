@@ -10,7 +10,8 @@ import { IS_TAURI } from "./platform";
 const NEW_ISSUE_URL = "https://github.com/HsiaoKang/learning-house/issues/new";
 
 /**
- * 打开系统浏览器进入"新建 Issue"页，正文预填环境信息模板
+ * 打开系统浏览器进入"新建 Issue"页，正文预填环境信息模板；
+ * 打开失败时弹窗提示（保证操作必有反馈）
  */
 export async function openFeedbackPage(): Promise<void> {
   const body = [
@@ -24,12 +25,17 @@ export async function openFeedbackPage(): Promise<void> {
   ].join("\n");
   const url = `${NEW_ISSUE_URL}?body=${encodeURIComponent(body)}`;
 
-  if (IS_TAURI) {
-    const { openUrl } = await import("@tauri-apps/plugin-opener");
-    await openUrl(url);
-    return;
+  try {
+    if (IS_TAURI) {
+      const { openUrl } = await import("@tauri-apps/plugin-opener");
+      await openUrl(url);
+      return;
+    }
+    window.open(url, "_blank");
+  } catch (e) {
+    const { showMessage } = await import("./dialogs");
+    await showMessage(`无法打开浏览器：${e instanceof Error ? e.message : e}\n\n可手动访问 ${NEW_ISSUE_URL}`, "反馈");
   }
-  window.open(url, "_blank");
 }
 
 /**
