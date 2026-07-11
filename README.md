@@ -105,9 +105,7 @@ AI 整理和管理页的成果也固化在这里，随文件夹一起迁移：
 [Discussions](https://github.com/HsiaoKang/learning-house/discussions) 反馈问题与想法；
 **暂不接受代码 PR**（为保持迭代速度与授权的灵活性）。想深度参与请先开 Discussion 聊。
 
-技术栈：[Tauri 2](https://tauri.app/)（Rust）+ React 19 + TypeScript + Vite，pnpm monorepo；
-曲谱渲染基于 [alphaTab](https://alphatab.net/)（Guitar Pro）与 [pdf.js](https://mozilla.github.io/pdf.js/)。
-环境用 [mise](https://mise.jdx.dev/) 管理（node 24 / rust 1.97 / pnpm 11）。
+自行构建（工具链版本由 [mise](https://mise.jdx.dev/) 自动安装）：
 
 ```bash
 mise install        # 安装工具链
