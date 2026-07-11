@@ -301,7 +301,7 @@ function App() {
   }, []);
 
   if (!loaded) {
-    return <div className="flex h-screen items-center justify-center text-muted-foreground">加载中…</div>;
+    return <div className="flex h-full items-center justify-center text-muted-foreground">加载中…</div>;
   }
 
   // 主题切换按钮：三态循环 跟随系统 -> 亮色 -> 暗色，两个页面顶栏共用
@@ -321,7 +321,7 @@ function App() {
       {activeCourse ? (
         <motion.div
           key={`classroom-${activeCourse.id}`}
-          className="h-screen"
+          className="h-full"
           initial={{ opacity: 0, scale: 0.985 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 1.01 }}
@@ -344,7 +344,7 @@ function App() {
       ) : (
         <motion.div
           key="library"
-          className="h-screen"
+          className="h-full"
           initial={{ opacity: 0, scale: 0.985 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 1.01 }}
