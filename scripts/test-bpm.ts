@@ -9,7 +9,13 @@
  *
  * 用法: pnpm dlx tsx scripts/test-bpm.ts
  */
-import { analyzeEnvelope, beatAlignmentScore, bpmFromFilename, snapBpmToRatios } from "../apps/desktop/src/lib/bpmDetect";
+import {
+  analyzeEnvelope,
+  beatAlignmentScore,
+  bpmFromFilename,
+  snapBpmToRatios,
+  verifyScoreBpm,
+} from "../apps/desktop/src/lib/bpmDetect";
 
 /** 包络格宽（与 bpmDetect 的 ENVELOPE_WIN_SEC 一致） */
 const STEP_SEC = 0.01;
@@ -114,6 +120,25 @@ results.push(
   checkTag("文件名·原速标注", "/x/第一集：16分音符（原速100bpm）.mp3", 100),
   checkTag("文件名·无标注", "/x/全闷音练习曲伴奏.mp3", null),
   checkTag("文件名·课号非速度", "/x/33：击勾弦进阶练习曲伴奏 .mp3", null),
+);
+
+/** 谱面标注交叉验证断言 */
+function checkScore(name: string, rawBpm: number, scoreBpm: number, want: number | null): boolean {
+  const got = verifyScoreBpm(rawBpm, scoreBpm);
+  const ok = got === want;
+  console.log(`[${ok ? "PASS" : "FAIL"}] ${name} -> verify(声学${rawBpm}, 谱${scoreBpm}) = ${got}（期望 ${want}）`);
+  return ok;
+}
+
+results.push(
+  // 推弦场景：谱 90 精确命中声学 120 网格的 3/4 候选，互证通过
+  checkScore("谱90×声学120通过", 120, 90, 90),
+  // 错谱场景：课节引用了无关曲子的谱（标 76），与 120 网格族无关，拒绝
+  checkScore("错谱76×声学120拒绝", 120, 76, null),
+  // 一致场景：谱面校正声学的小误差（98.5 -> 100）
+  checkScore("谱100×声学98.5校正", 98.5, 100, 100),
+  // 差距过大：接近但超出 2% 容差（谱 84 vs 候选 80/90 均差 5%+），拒绝
+  checkScore("谱84×声学120拒绝", 120, 84, null),
 );
 
 process.exit(results.every(Boolean) ? 0 : 1);

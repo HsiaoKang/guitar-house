@@ -167,21 +167,47 @@ export function snapTapToGrid(path: string, tapBpm: number): { bpm: number; offs
   if (!lastAnalysis || lastAnalysis.path !== path) return null;
   const snapped = snapBpmToRatios(lastAnalysis.rawBpm, tapBpm);
   if (snapped === null) return null;
-  return alignToBpm(path, snapped);
+  const aligned = alignPhaseForBpm(lastAnalysis.envelope, snapped);
+  return { bpm: snapped, offset: Math.max(0, +aligned.toFixed(2)) };
+}
+
+/** 谱面标注的交叉验证容差（对数距离）：谱面是精确数字，仅接受与
+ * 声学网格比率候选几乎相等（约 ±2%），无关曲谱的标注会被拒绝 */
+const SCORE_VERIFY_TOLERANCE = Math.log(1.02);
+
+/**
+ * 谱面标注交叉验证：标注值须几乎精确命中声学网格的比率族才采纳。
+ * 谱面与伴奏可能不对应（课节引用了其他曲子的谱），声学网格是
+ * 这首伴奏的物理事实——两者互证通过才可信，否则判定非本曲谱面。
+ * （导出亦供离线回归测试）
+ *
+ * @param rawBpm 声学检测的原始 BPM（网格基准）
+ * @param scoreBpm 谱面标注的 BPM
+ * @returns 验证通过返回谱面值，否则 null
+ */
+export function verifyScoreBpm(rawBpm: number, scoreBpm: number): number | null {
+  for (const ratio of SNAP_RATIOS) {
+    const candidate = rawBpm * ratio;
+    if (candidate < BPM_MIN || candidate > BPM_MAX) continue;
+    if (Math.abs(Math.log(scoreBpm / candidate)) <= SCORE_VERIFY_TOLERANCE) {
+      return scoreBpm;
+    }
+  }
+  return null;
 }
 
 /**
- * 用给定的权威拍速（谱面标注等可信来源）在伴奏上做相位搜索定位首拍。
- * 与 TAP 吸附的区别：拍速本身可信，不做比率吸附
+ * 用通过验证的谱面拍速在伴奏上做相位搜索定位首拍
  *
  * @param path 伴奏文件绝对路径（需已做过识别，复用其分析产物）
- * @param bpm 权威拍速
- * @returns 该拍速下的首拍定位；伴奏未识别过时返回 null
+ * @param scoreBpm 谱面标注的 BPM
+ * @returns 验证通过时的定位结果；未识别过或验证失败时返回 null
  */
-export function alignToBpm(path: string, bpm: number): { bpm: number; offset: number } | null {
+export function alignToScoreBpm(path: string, scoreBpm: number): { bpm: number; offset: number } | null {
   if (!lastAnalysis || lastAnalysis.path !== path) return null;
-  const aligned = alignPhaseForBpm(lastAnalysis.envelope, bpm);
-  return { bpm, offset: Math.max(0, +aligned.toFixed(2)) };
+  if (verifyScoreBpm(lastAnalysis.rawBpm, scoreBpm) === null) return null;
+  const aligned = alignPhaseForBpm(lastAnalysis.envelope, scoreBpm);
+  return { bpm: scoreBpm, offset: Math.max(0, +aligned.toFixed(2)) };
 }
 
 /**

@@ -14,7 +14,7 @@ import { AudioPlayerBar } from "../components/AudioPlayerBar";
 import { DocViewer } from "../components/DocViewer";
 import { ResourcePicker } from "../components/ResourcePicker";
 import { ToolBar } from "../components/ToolBar";
-import { alignToBpm, detectBpmFromFile, snapTapToGrid } from "../lib/bpmDetect";
+import { alignToScoreBpm, detectBpmFromFile, snapTapToGrid } from "../lib/bpmDetect";
 import { bpmFromScorePdf } from "../lib/scoreBpm";
 import { loadMediaMeta, saveMediaMeta, type AudioBeatMeta, type CourseMediaMeta } from "../lib/mediaMeta";
 import { useMetronome, type SyncConfig } from "../hooks/useMetronome";
@@ -272,14 +272,15 @@ export function ClassroomPage(props: ClassroomPageProps) {
       let final = { bpm: detected.bpm, offset: detected.offset };
       let source = detected.fromFilename ? "（文件名标注）" : detected.octaveAdjusted ? "（已修正倍频）" : "";
       if (!detected.fromFilename) {
-        // 关键节点：查本课节谱面的速度标注，命中则以谱面为准重新定位首拍
+        // 关键节点：逐份验证本课节谱面的速度标注——标注须精确命中声学
+        // 网格的比率族才采纳（谱面可能是引用的其他曲子，声学网格互证防错谱）
         for (const res of lesson?.resources ?? []) {
           if (res.kind !== "pdf") continue;
           const scoreBpm = await bpmFromScorePdf(res.path).catch(() => null);
-          if (scoreBpm !== null) {
-            if (scoreBpm !== detected.bpm) {
-              final = alignToBpm(path, scoreBpm) ?? { bpm: scoreBpm, offset: detected.offset };
-            }
+          if (scoreBpm === null) continue;
+          const verified = alignToScoreBpm(path, scoreBpm);
+          if (verified) {
+            final = verified;
             source = "（谱面标注）";
             break;
           }
