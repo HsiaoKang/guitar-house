@@ -25,8 +25,8 @@ interface ManagePageProps {
   onBack: () => void;
   /** 保存草稿：写清单并按清单重扫，成功后由 App 返回课程库 */
   onSave: (manifest: CourseManifest) => Promise<boolean>;
-  /** 进入该课程的上课页（整理完成后的顺路入口） */
-  onStartLearning: () => void;
+  /** 进入该课程的上课页；lessonName 指定时直接定位到该课节 */
+  onStartLearning: (lessonName?: string) => void;
 }
 
 /** 资源类别对应的列表图标 */
@@ -167,12 +167,12 @@ export function ManagePage({ course, onBack, onSave, onStartLearning }: ManagePa
   };
 
   /** 进入上课：有未保存修改先走保存流程，保存失败则留在管理页 */
-  const startLearning = async () => {
+  const startLearning = async (lessonName?: string) => {
     if (dirty) {
       const ok = await save();
       if (!ok) return;
     }
-    onStartLearning();
+    onStartLearning(lessonName);
   };
 
   /** 返回前的脏数据拦截 */
@@ -239,6 +239,12 @@ export function ManagePage({ course, onBack, onSave, onStartLearning }: ManagePa
                   value={lesson.name}
                   onChange={(e) => rename(lesson.key, e.target.value)}
                   className="h-7 min-w-0 flex-1 rounded border border-transparent bg-transparent px-1.5 text-[13px] font-medium text-foreground transition-colors hover:border-border focus:border-ring focus:bg-secondary focus:outline-none"
+                />
+                <IconButton
+                  name="play"
+                  label="从这节开始上课"
+                  disabled={lesson.resources.length === 0}
+                  onClick={() => void startLearning(lesson.name.trim())}
                 />
                 <IconButton name="arrowUp" label="上移" disabled={i === 0} onClick={() => move(lesson.key, -1)} />
                 <IconButton

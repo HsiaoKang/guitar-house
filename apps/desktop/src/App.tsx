@@ -82,6 +82,8 @@ function App() {
   const [activeCourseId, setActiveCourseId] = useState<string | null>(null);
   /** 正在管理课节的课程 id（管理页视图） */
   const [managingCourseId, setManagingCourseId] = useState<string | null>(null);
+  /** 进入上课页时要定位到的课节名（管理页跳转指定；消费后清空） */
+  const [initialLessonName, setInitialLessonName] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   /** 课程 id -> 进度（完成课节 + 续播位置），持久化在课程文件夹内 */
   const progressRef = useRef<Map<string, CourseProgress>>(new Map());
@@ -480,7 +482,8 @@ function App() {
             course={managingCourse}
             onBack={() => setManagingCourseId(null)}
             onSave={(manifest) => saveManagedManifest(managingCourse.id, manifest)}
-            onStartLearning={() => {
+            onStartLearning={(lessonName) => {
+              setInitialLessonName(lessonName ?? null);
               setActiveCourseId(managingCourse.id);
               setManagingCourseId(null);
             }}
@@ -497,7 +500,11 @@ function App() {
         >
           <ClassroomPage
             course={activeCourse}
-            onBack={() => setActiveCourseId(null)}
+            initialLessonName={initialLessonName}
+            onBack={() => {
+              setActiveCourseId(null);
+              setInitialLessonName(null);
+            }}
             onLessonCompletedChange={(lessonName, completed) =>
               setLessonCompleted(activeCourse.id, lessonName, completed)
             }
@@ -523,7 +530,10 @@ function App() {
         >
           <LibraryPage
             courses={courses}
-            onOpenCourse={setActiveCourseId}
+            onOpenCourse={(id) => {
+              setInitialLessonName(null);
+              setActiveCourseId(id);
+            }}
             onImportFolder={importFolder}
             onGenerateAiPrompt={generateAiPrompt}
             onImportByPastedManifest={importByPastedManifest}

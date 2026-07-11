@@ -26,6 +26,8 @@ import {
 
 interface ClassroomPageProps {
   course: Course;
+  /** 进入时定位到的课节名（管理页跳转指定；null/未命中时从第一节开始） */
+  initialLessonName?: string | null;
   /** 返回课程库 */
   onBack: () => void;
   /** 课节完成状态变化（lessonName 为键，由外层持久化到课程文件夹） */
@@ -54,6 +56,7 @@ interface ClassroomPageProps {
 export function ClassroomPage(props: ClassroomPageProps) {
   const {
     course,
+    initialLessonName,
     onBack,
     onLessonCompletedChange,
     settings,
@@ -72,10 +75,13 @@ export function ClassroomPage(props: ClassroomPageProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const metronome = useMetronome();
 
-  // 课程切换时重置课节与默认工具
+  // 课程切换时定位起始课节（管理页跳转可指定课节名）并重置默认工具
   useEffect(() => {
-    setLessonIndex(0);
+    const target = initialLessonName ? course.lessons.findIndex((l) => l.name === initialLessonName) : -1;
+    setLessonIndex(target >= 0 ? target : 0);
     setTool(DEFAULT_TOOL_BY_COURSE_TYPE[course.type]);
+    // 关键节点：仅在课程切换时定位一次，之后用户自由切换课节不受影响
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [course.id, course.type]);
 
   // 切换课节时收起资料选择器
