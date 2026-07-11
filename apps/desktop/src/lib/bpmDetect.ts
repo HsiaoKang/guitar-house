@@ -23,9 +23,8 @@ export interface BpmDetectResult {
 const BPM_MIN = 20;
 const BPM_MAX = 300;
 
-/** 倍频候选的合理区间（超出的候选不参与评分） */
+/** 倍频候选下限（低于此值的减半提议不成立） */
 const CANDIDATE_MIN = 40;
-const CANDIDATE_MAX = 220;
 
 /** 包络计算窗口（秒），同时是相位搜索精度 */
 const ENVELOPE_WIN_SEC = 0.01;
@@ -33,14 +32,23 @@ const ENVELOPE_WIN_SEC = 0.01;
 /** 拍点采样容差（包络格数）：拍点 ± 2 格内取最大值，容忍网格微漂 */
 const BEAT_TOLERANCE_STEPS = 2;
 
-/** 奇偶拍强弱比阈值：低于此值说明网格是半拍网格（真节奏应减半）。
- * 真实样本校准：75 的曲子被报 150 时该比值 0.72，正确的 100 网格为 0.87 */
+/** 练习伴奏拍速（tactus）合理上限：检测值超出一律减半。
+ * 三门真实课程的谱面拍速均在 60-120，>140 的检测值都是倍频错判 */
+const TACTUS_MAX = 140;
+
+/** 奇偶拍强弱比阈值：低于此值疑似半拍网格（提议减半，由拍速先验裁决）。
+ * 校准：75 被报 150 时 0.72；真 100 网格因二四拍天然偏弱也会到 0.73，
+ * 两者能量特征无法区分，最终取舍交给 TEMPO_PRIOR_CENTER */
 const ALTERNATION_THRESHOLD = 0.75;
 
-/** 反拍/拍点能量比阈值：高于此值说明网格漏拍（真节奏应翻倍）。
- * 真实伴奏的反拍能量普遍偏高（连续八分音型下 0.9 左右属正常），
- * 只有反拍与拍点几乎同强才可信翻倍；校准：真 100 的伴奏该比值 0.91（不应翻倍） */
+/** 翻倍兜底阈值：反拍与拍点几乎同强（>0.95）才提议翻倍。
+ * 校准：33 课伴奏 0.91（不触发）、sol 指型 0.97（触发但被先验/区间拦下） */
 const OFFBEAT_THRESHOLD = 0.95;
+
+/** 拍速先验中心：结构信号发出倍频提议时，取对数尺度上离中心更近的一档。
+ * 校准依据两组真实对决：75 vs 150 应选 75、100 vs 50 应选 100，
+ * 中心取两组几何均值区间 (71, 106) 的居中值 */
+const TEMPO_PRIOR_CENTER = 95;
 
 /** 路径 -> 识别结果缓存（解码整首歌成本高，同文件只算一次） */
 const cache = new Map<string, BpmDetectResult>();
@@ -110,10 +118,12 @@ function computeEnvelope(buffer: AudioBuffer): Float32Array {
  * 用节奏结构信号迭代修正倍频错误，并定位拍网格起点。
  * （导出仅供离线回归测试）
  *
- * 两个判别信号：
- * - 奇偶拍强弱交替（奇拍明显弱于偶拍）：当前网格是半拍网格，
- *   真节奏应减半——75 的曲子按 150 检测时，八分位能量低于四分位
- * - 反拍与拍点同强：当前网格漏拍，真节奏应翻倍
+ * 分层规则（全部经真实伴奏 PCM 校准）：
+ * 1. 区间硬约束：检测值超出练习伴奏拍速上限一律减半
+ * 2. 结构信号只负责"提议"倍频修正（奇偶交替明显 -> 提议减半；
+ *    反拍与拍点同强 -> 提议翻倍），是否采纳由拍速先验裁决——
+ *    能量特征无法区分"八分网格"与"二四拍偏弱的真拍网格"
+ *    （实测两者奇偶比同为 0.72），只有先验能决断
  *
  * @param envelope 全曲包络
  * @param rawBpm 库粗估的 BPM
@@ -121,25 +131,39 @@ function computeEnvelope(buffer: AudioBuffer): Float32Array {
  */
 export function refineTempoAndPhase(envelope: Float32Array, rawBpm: number): { bpm: number; phaseSec: number } {
   let bpm = rawBpm;
-  let phaseStep = 0;
 
-  // 最多修正两级（150->75、50->100 都是一级；防止交替信号振荡）
+  // 最多修正两级（400->100 类极端场景），防止信号冲突时振荡
   for (let iter = 0; iter < 3; iter++) {
-    const periodSteps = 60 / bpm / ENVELOPE_WIN_SEC;
-    const aligned = alignPhase(envelope, periodSteps);
-    phaseStep = aligned.phaseStep;
-
-    if (aligned.oddRatio < ALTERNATION_THRESHOLD && bpm / 2 >= CANDIDATE_MIN) {
+    if (bpm > TACTUS_MAX && bpm / 2 >= CANDIDATE_MIN) {
       bpm /= 2;
       continue;
     }
-    if (aligned.offbeatRatio > OFFBEAT_THRESHOLD && bpm * 2 <= CANDIDATE_MAX) {
-      bpm *= 2;
+    const current = alignPhase(envelope, 60 / bpm / ENVELOPE_WIN_SEC);
+    let proposal: number | null = null;
+    if (current.oddRatio < ALTERNATION_THRESHOLD && bpm / 2 >= CANDIDATE_MIN) {
+      proposal = bpm / 2;
+    } else if (current.offbeatRatio > OFFBEAT_THRESHOLD && bpm * 2 <= TACTUS_MAX) {
+      proposal = bpm * 2;
+    }
+    // 关键节点：先验裁决——提议值在对数尺度上更接近先验中心才采纳
+    if (proposal !== null && priorDistance(proposal) < priorDistance(bpm)) {
+      bpm = proposal;
       continue;
     }
     break;
   }
-  return { bpm, phaseSec: phaseStep * ENVELOPE_WIN_SEC };
+
+  const finalAlign = alignPhase(envelope, 60 / bpm / ENVELOPE_WIN_SEC);
+  return { bpm, phaseSec: finalAlign.phaseStep * ENVELOPE_WIN_SEC };
+}
+
+/**
+ * 候选拍速与先验中心的对数距离（越小越接近常见练习拍速）
+ *
+ * @param bpm 候选 BPM
+ */
+function priorDistance(bpm: number): number {
+  return Math.abs(Math.log(bpm / TEMPO_PRIOR_CENTER));
 }
 
 /**

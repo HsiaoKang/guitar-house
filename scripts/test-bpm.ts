@@ -55,6 +55,8 @@ const results = [
   check("真100带弱半拍", refineTempoAndPhase(synthesize(100, 180, 0.2, 0.35), 100), 100, 0.2),
   // 33 课真实形态：连续八分音型反拍能量高（真实样本反拍比 0.91），不得误翻倍
   check("真100反拍强不翻倍", refineTempoAndPhase(synthesize(100, 180, 0.2, 0.9), 100), 100, 0.2),
+  // sol 指型场景：真 100 全曲同强八分，库报 200（能量域无法区分，靠区间硬约束拉回）
+  check("真100同强八分被报200", refineTempoAndPhase(synthesize(100, 60, 0.35, 1.0), 200), 100, 0.35),
 ];
 
 process.exit(results.every(Boolean) ? 0 : 1);
