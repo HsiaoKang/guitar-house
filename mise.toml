@@ -1,4 +1,5 @@
 # Learning House 工具链版本管理
 [tools]
-node = "22"
-rust = "1.88"
+node = "24"
+rust = "1.97"
+pnpm = "11.11"
