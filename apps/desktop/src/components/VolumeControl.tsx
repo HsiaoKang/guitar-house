@@ -86,7 +86,12 @@ export function VolumeControl(props: VolumeControlProps) {
               onChange={onVolumeChange}
               aria-label="音量"
             />
-            <span className={cn("text-[10px] tabular-nums", onDark ? "text-white/80" : "text-muted-foreground")}>
+            <span
+              className={cn(
+                "w-[3ch] text-center text-[10px] tabular-nums",
+                onDark ? "text-white/80" : "text-muted-foreground",
+              )}
+            >
               {percent}
             </span>
           </motion.div>
