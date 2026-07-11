@@ -124,10 +124,10 @@ export function ClassroomPage(props: ClassroomPageProps) {
     if (!path || detectingBpm) return;
     setDetectingBpm(true);
     try {
-      const { bpm, offset } = await detectBpmFromFile(path);
+      const { bpm, offset, octaveAdjusted } = await detectBpmFromFile(path);
       metronome.updateOptions({ bpm });
       metronome.setSync({ firstBeatOffset: offset });
-      toast(`已识别伴奏：${bpm} BPM · 首拍 ${offset}s`);
+      toast(`已识别伴奏：${bpm} BPM${octaveAdjusted ? "（已修正倍频）" : ""} · 首拍 ${offset}s`);
     } catch {
       toast("识别失败：节奏特征不明显或文件无法解码");
     } finally {
