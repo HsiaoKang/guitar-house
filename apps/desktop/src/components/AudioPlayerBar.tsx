@@ -43,12 +43,20 @@ export function AudioPlayerBar(props: AudioPlayerBarProps) {
   /** 音量变化信号（递增），驱动音量浮层的视觉反馈 */
   const [volumeFlash, setVolumeFlash] = useState(0);
 
-  // 课节切换时回到第一个音频
+  // 课节切换时回到第一个音频，并重置播放进度
+  // （多个课节共用同一份伴奏时元素不重建，进度与播放状态会残留）
   useEffect(() => {
     setActiveIndex(0);
     setPlaying(false);
     setRate(1);
-  }, [resources]);
+    setCurrentTime(0);
+    const el = audioRef.current;
+    if (el) {
+      el.pause();
+      el.currentTime = 0;
+      el.playbackRate = 1;
+    }
+  }, [resources, audioRef]);
 
   const active = resources[Math.min(activeIndex, resources.length - 1)] ?? null;
 
