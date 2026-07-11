@@ -174,7 +174,7 @@ export function MetronomeBar(props: MetronomeBarProps) {
       </div>
 
       <Tooltip content="每拍强弱：柱高即响度，点击循环切换 强 / 次强 / 弱 / 静音">
-        <div className="ml-auto flex h-8 items-end gap-1 pb-1 pr-1.5">
+        <div className="flex h-8 shrink-0 items-end gap-1 pb-1">
           {options.beatLevels.map((level, i) => {
             const hit = i === activeBeat;
             return (
