@@ -122,39 +122,6 @@ export function MetronomeBar(props: MetronomeBarProps) {
           options={BEATS_OPTIONS.map((n) => ({ value: String(n), label: `${n}/4` }))}
           title="拍号（每小节拍数）"
         />
-        <Tooltip content="每拍强弱：柱高即响度，点击循环切换 强 / 次强 / 弱 / 静音">
-          <div className="flex h-8 items-end gap-1 px-0.5 pb-1">
-            {options.beatLevels.map((level, i) => {
-              const hit = i === activeBeat;
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  aria-label={`第 ${i + 1} 拍：${LEVEL_NAMES[level]}`}
-                  onClick={() => {
-                    const next = [...options.beatLevels];
-                    next[i] = ((level + 3) % 4) as BeatLevel;
-                    updateOptions({ beatLevels: next });
-                  }}
-                  className="flex h-6 w-3.5 cursor-pointer items-end justify-center"
-                >
-                  <span
-                    style={{ height: LEVEL_HEIGHTS[level] }}
-                    className={cn(
-                      "w-2.5 rounded-[2px] transition-[height,background-color,box-shadow] duration-100",
-                      level === 0
-                        ? "bg-border"
-                        : hit
-                          ? "bg-primary shadow-[0_0_8px_var(--primary)]"
-                          : "bg-muted-foreground/55 hover:bg-muted-foreground/80",
-                      level === 0 && hit && "bg-muted-foreground/70",
-                    )}
-                  />
-                </button>
-              );
-            })}
-          </div>
-        </Tooltip>
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
@@ -206,6 +173,39 @@ export function MetronomeBar(props: MetronomeBarProps) {
         )}
       </div>
 
+      <Tooltip content="每拍强弱：柱高即响度，点击循环切换 强 / 次强 / 弱 / 静音">
+        <div className="ml-auto flex h-8 items-end gap-1 pb-1 pr-1.5">
+          {options.beatLevels.map((level, i) => {
+            const hit = i === activeBeat;
+            return (
+              <button
+                key={i}
+                type="button"
+                aria-label={`第 ${i + 1} 拍：${LEVEL_NAMES[level]}`}
+                onClick={() => {
+                  const next = [...options.beatLevels];
+                  next[i] = ((level + 3) % 4) as BeatLevel;
+                  updateOptions({ beatLevels: next });
+                }}
+                className="flex h-6 w-3.5 cursor-pointer items-end justify-center"
+              >
+                <span
+                  style={{ height: LEVEL_HEIGHTS[level] }}
+                  className={cn(
+                    "w-2.5 rounded-[2px] transition-[height,background-color,box-shadow] duration-100",
+                    level === 0
+                      ? "bg-border"
+                      : hit
+                        ? "bg-primary shadow-[0_0_3px_var(--primary)]"
+                        : "bg-muted-foreground/55 hover:bg-muted-foreground/80",
+                    level === 0 && hit && "bg-muted-foreground/70",
+                  )}
+                />
+              </button>
+            );
+          })}
+        </div>
+      </Tooltip>
     </div>
   );
 }
