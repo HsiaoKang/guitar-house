@@ -1,0 +1,38 @@
+name: 问题反馈
+description: 使用中遇到了 bug 或异常行为
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 遇到了什么问题
+      description: 做了什么操作、预期发生什么、实际发生了什么；可以直接粘贴截图
+      placeholder: 例：导入课程文件夹后一直转圈，没有任何提示……
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 应用版本
+      description: 课程库页面左上角悬停 Logo 可见；应用内反馈入口会自动填好
+      placeholder: 0.4.0
+    validations:
+      required: false
+  - type: dropdown
+    id: os
+    attributes:
+      label: 操作系统
+      options:
+        - macOS（Apple 芯片）
+        - macOS（Intel）
+        - Windows
+        - Linux
+    validations:
+      required: false
+  - type: textarea
+    id: course-structure
+    attributes:
+      label: 课程文件夹结构（如与导入/整理相关）
+      description: 可粘贴文件夹内文件名列表的片段，便于复现整理问题
+    validations:
+      required: false

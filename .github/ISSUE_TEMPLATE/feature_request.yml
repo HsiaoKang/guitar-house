@@ -1,0 +1,19 @@
+name: 功能建议
+description: 希望增加或改进的功能
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 想解决什么问题
+      description: 描述你的使用场景和当前的不便之处，比功能方案本身更有帮助
+      placeholder: 例：我的课程谱子都是横版长图，现在看谱需要频繁滚动……
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: 期望的做法（可选）
+      description: 如果你有想象中的交互方式，欢迎描述
+    validations:
+      required: false

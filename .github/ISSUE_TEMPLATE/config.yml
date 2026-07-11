@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 功能愿望清单 / 使用交流
+    url: https://github.com/HsiaoKang/learning-house/discussions
+    about: 不确定是不是 bug、想聊想法或投票支持功能，请到 Discussions
