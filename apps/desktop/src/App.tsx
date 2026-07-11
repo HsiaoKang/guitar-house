@@ -92,24 +92,40 @@ function App() {
   // 实际渲染主题：偏好为 system 时跟随系统外观
   const resolvedTheme: ResolvedTheme = settings.theme === "system" ? systemTheme : settings.theme;
 
-  // 启动时加载课程库与设置，读取各课程的进度文件，并同步清单声明的课程名
+  // 启动加载：课程库与设置存于本地应用数据（快），读到即渲染首屏；
+  // 进度文件与清单名位于课程文件夹（可能在外接盘，寻道/唤醒慢），
+  // 改为后台并行刷新，完成后校正展示——首屏不再被外接盘 IO 阻塞
   useEffect(() => {
     void (async () => {
       const [storedCourses, storedSettings] = await Promise.all([loadCourses(), loadSettings()]);
+      setSettings({ ...DEFAULT_SETTINGS, ...storedSettings });
+      // 关键节点：先用上次保存的课程快照（含完成状态）渲染
+      setCourses(storedCourses);
+      setLoaded(true);
+
+      // 后台并行读取各课程的进度与清单名（每门课两次外接盘 IO，互不等待）
+      const refreshed = await Promise.all(
+        storedCourses.map(async (course) => {
+          if (!course.rootDir) return null;
+          const [progress, manifestName] = await Promise.all([
+            loadCourseProgress(course.rootDir),
+            readManifestName(course.rootDir).catch(() => null),
+          ]);
+          return { course, progress, manifestName };
+        }),
+      );
+
       let renamed = false;
-      for (const course of storedCourses) {
-        if (!course.rootDir) continue;
-        progressRef.current.set(course.id, await loadCourseProgress(course.rootDir));
-        // 关键节点：清单是课程名的事实来源，历史导入的文件夹名展示随之更新
-        const manifestName = await readManifestName(course.rootDir).catch(() => null);
-        if (manifestName && manifestName !== course.name) {
-          course.name = manifestName;
+      for (const item of refreshed) {
+        if (!item) continue;
+        progressRef.current.set(item.course.id, item.progress);
+        // 清单是课程名的事实来源，历史导入的文件夹名展示随之更新
+        if (item.manifestName && item.manifestName !== item.course.name) {
+          item.course.name = item.manifestName;
           renamed = true;
         }
       }
       setCourses(applyProgress(storedCourses, progressRef.current));
-      setSettings({ ...DEFAULT_SETTINGS, ...storedSettings });
-      setLoaded(true);
       if (renamed) void saveCourses(storedCourses);
     })();
   }, []);
