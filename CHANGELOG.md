@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1](https://github.com/HsiaoKang/learning-house/compare/v0.4.0...v0.4.1) (2026-07-13)
+
+
+### Bug Fixes
+
+* 导入按钮阶段化——选文件夹期间不再误显扫描中 ([1f024ff](https://github.com/HsiaoKang/learning-house/commit/1f024ff2020861a3df38ee72dbf09424a433b10c))
+* 精简构建产物 + Windows 安装器中文化 ([4fa547c](https://github.com/HsiaoKang/learning-house/commit/4fa547c12d04fd847de575f5f0af32f2743a9baf))
+
 ## [0.4.0](https://github.com/HsiaoKang/learning-house/compare/v0.3.0...v0.4.0) (2026-07-11)
 
 
