@@ -1,5 +1,34 @@
-# Learning House 工具链版本管理
+# Learning House 工具链版本与任务入口
+# `mise run <task>` 自动保证工具链版本正确后执行（无需手动激活环境）
 [tools]
 node = "24"
 rust = "1.97"
 pnpm = "11.11"
+
+[tasks.dev]
+description = "启动开发模式（Vite + Tauri）"
+run = "pnpm dev"
+
+[tasks.build]
+description = "构建桌面安装包"
+run = "pnpm build"
+
+[tasks.typecheck]
+description = "全仓类型检查"
+run = "pnpm -r typecheck"
+
+[tasks."test:scan"]
+description = "课程整理引擎回归（附课程目录参数，--collection 测合集）"
+run = "pnpm dlx tsx scripts/test-scan.ts"
+
+[tasks."test:bpm"]
+description = "BPM 识别与倍频判别回归（合成场景 + 纯函数断言）"
+run = "pnpm dlx tsx scripts/test-bpm.ts"
+
+[tasks."diag:bpm"]
+description = "真实伴奏节拍诊断（参数：<pcm文件> <粗估BPM> [前N秒]）"
+run = "pnpm dlx tsx scripts/diag-bpm.ts"
+
+[tasks."gen:manifest"]
+description = "按启发式为课程目录生成课节清单（--dry-run 只看不写）"
+run = "pnpm dlx tsx scripts/gen-manifest.ts"

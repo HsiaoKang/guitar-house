@@ -105,14 +105,15 @@ AI 整理和管理页的成果也固化在这里，随文件夹一起迁移：
 [Discussions](https://github.com/HsiaoKang/learning-house/discussions) 反馈问题与想法；
 **暂不接受代码 PR**（为保持迭代速度与授权的灵活性）。想深度参与请先开 Discussion 聊。
 
-自行构建（工具链版本由 [mise](https://mise.jdx.dev/) 自动安装）：
+自行构建（工具链版本与任务统一由 [mise](https://mise.jdx.dev/) 管理）：
 
 ```bash
-mise install        # 安装工具链
-pnpm install        # 安装依赖
-pnpm dev            # 开发模式（Vite + Tauri）
-pnpm build          # 构建安装包
-pnpm -r typecheck   # 全仓类型检查
+mise install         # 安装工具链
+pnpm install         # 安装依赖
+mise run dev         # 开发模式（Vite + Tauri）
+mise run build       # 构建安装包
+mise run typecheck   # 全仓类型检查
+mise tasks           # 查看全部任务（含离线回归工具）
 ```
 
 发版：提交遵循 [Conventional Commits](https://www.conventionalcommits.org/zh-hans/)，
